@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sky Islands</title>
+  <style>
+    /* Apollo palette, same as the game */
+    :root {
+      --sky-deep: #172038; --sky: #253a5e; --sky-mid: #3c5e8b;
+      --sky-light: #4f8fba; --sky-pale: #73bed3;
+      --gold: #de9e41; --gold-pale: #e8c170;
+      --red: #cf573c; --green: #a8ca58; --magenta: #c65197;
+      --ink: #090a14; --panel: #151d28; --panel-edge: #394a50;
+      --text: #c7cfcc; --dim: #819796; --bright: #ebede9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--ink); color: var(--text);
+      font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
+      display: flex; flex-direction: column; align-items: center;
+      min-height: 100vh; padding: 24px 16px 48px;
+    }
+    h1 {
+      margin: 8px 0 2px; letter-spacing: 0.35em; font-weight: 700;
+      background: linear-gradient(90deg, var(--sky-mid), var(--sky-light), var(--sky-pale), var(--bright));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .tagline { color: var(--dim); margin: 0 0 20px; font-size: 0.85rem; }
+    .frame {
+      width: min(960px, 96vw); aspect-ratio: 16 / 9;
+      border: 1px solid var(--panel-edge); background: #000;
+      box-shadow: 0 0 40px rgba(37, 58, 94, 0.6);
+    }
+    .frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+    .hint { color: var(--dim); font-size: 0.8rem; margin: 10px 0 26px; }
+    .hint b { color: var(--gold-pale); font-weight: 600; }
+    .cols {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px; width: min(960px, 96vw);
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--panel-edge);
+      padding: 14px 16px; font-size: 0.85rem; line-height: 1.55;
+    }
+    .card h2 {
+      margin: 0 0 8px; font-size: 0.8rem; letter-spacing: 0.15em;
+      color: var(--gold); text-transform: uppercase;
+    }
+    kbd {
+      display: inline-block; min-width: 1.6em; text-align: center;
+      background: var(--sky-deep); border: 1px solid var(--panel-edge);
+      border-bottom-width: 2px; border-radius: 3px; padding: 0 5px;
+      color: var(--bright); font-size: 0.85em;
+    }
+    .row { display: flex; justify-content: space-between; gap: 12px; margin: 3px 0; }
+    .row span:last-child { color: var(--dim); text-align: right; }
+    .lore { color: var(--dim); }
+    .lore em { color: var(--sky-pale); font-style: normal; }
+    .lore .debt { color: var(--red); }
+    .lore .free { color: var(--green); }
+    footer { margin-top: 28px; color: var(--dim); font-size: 0.75rem; }
+    footer a { color: var(--sky-light); }
+  </style>
+</head>
+<body>
+  <h1>SKY ISLANDS</h1>
+  <p class="tagline">an ASCII roguelike about debt</p>
+
+  <div class="frame"><iframe src="play/index.html" title="Sky Islands" allow="autoplay"></iframe></div>
+  <p class="hint">Click the game once so it hears your keyboard. <b>Take the contract.</b></p>
+
+  <div class="cols">
+    <div class="card">
+      <h2>Moving &amp; looking</h2>
+      <div class="row"><span><kbd>&larr;</kbd><kbd>&darr;</kbd><kbd>&uarr;</kbd><kbd>&rarr;</kbd> or <kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd></span><span>move</span></div>
+      <div class="row"><span><kbd>y</kbd><kbd>u</kbd><kbd>b</kbd><kbd>n</kbd></span><span>move diagonally</span></div>
+      <div class="row"><span><kbd>x</kbd></span><span>examine (look around)</span></div>
+      <div class="row"><span><kbd>o</kbd></span><span>open / close doors</span></div>
+      <div class="row"><span><kbd>.</kbd></span><span>wait a turn</span></div>
+      <div class="row"><span>walk into a creature</span><span>attack it</span></div>
+    </div>
+    <div class="card">
+      <h2>Hands &amp; pack</h2>
+      <div class="row"><span><kbd>g</kbd></span><span>open cache / pile / hold underfoot</span></div>
+      <div class="row"><span><kbd>Space</kbd></span><span>interact: contracts, beacon, bed, store</span></div>
+      <div class="row"><span><kbd>i</kbd></span><span>pack &mdash; <kbd>Space</kbd> eats or bandages</span></div>
+      <div class="row"><span><kbd>Tab</kbd></span><span>switch panes when trading</span></div>
+      <div class="row"><span><kbd>d</kbd></span><span>pay down debt (at the store)</span></div>
+      <div class="row"><span><kbd>Backspace</kbd></span><span>close any menu</span></div>
+      <div class="row"><span><kbd>Esc</kbd></span><span>pause menu (volume, keys)</span></div>
+    </div>
+    <div class="card lore">
+      <h2>The situation</h2>
+      <p>The Meridian Survey Company owns your passage debt: <span class="debt">2000 credits</span>. Survey islands, open what you find, come back alive. They garnish 60% of every payout &mdash; what you <em>haul</em> is yours, to sell at their store, at their prices.</p>
+      <p>Eat before the hunger bar fills. Mind the thickets &mdash; what you can't see through, you can hide in. So can everything else. Retrieval is billable.</p>
+      <p class="free">Work the debt to zero and you're free.</p>
+    </div>
+  </div>
+
+  <footer>
+    built with <a href="https://usagiengine.com/">usagi</a> &middot;
+    <a href="https://lospec.com/palette-list/apollo">apollo palette</a> &middot;
+    <a href="https://github.com/Thunderducky/sky-islands">source</a>
+  </footer>
+</body>
+</html>
