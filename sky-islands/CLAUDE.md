@@ -17,6 +17,14 @@ settled/leaning/proposed) → `SPEC.md` (technical contracts) → this file
   export & deployment"). Live at https://thunderducky.github.io/sky-islands/
   — repo github.com/Thunderducky/sky-islands (Eric's PERSONAL account
   Thunderducky; never TeleVet). Repo root is `../` (roguelike/).
+- **Releases**: every user-visible change gets a `../CHANGELOG.md` entry
+  under `[Unreleased]`, promoted to a version + date when tagged. Tag
+  with `git tag -a vX.Y.Z -m "..."`, push tags (`git push origin
+  --tags`), and cut a GitHub release (`gh release create vX.Y.Z --notes
+  "..."`) from that changelog section. Bugfix = patch bump. If the fix
+  touches anything under `sky-islands/` outside `tests/`, re-export the
+  web build (previous bullet) BEFORE tagging — the tag should match
+  what's actually live.
 
 ## Hard rules (violating these breaks invisible contracts)
 
