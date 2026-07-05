@@ -38,8 +38,22 @@ Built and playtested (see sky-islands/SPEC.md for technical detail):
 - **Foraging [settled]**: one-way (take-only) containers — berry bushes
   strip and vanish. Free food attacks the store's margins. Future:
   regrowth on a day clock; crafting berries into preserves.
+- **Combat v0 [built]**: fauna + shard-wardens guarding ruin caches,
+  attack-on-sight/wander AI, bump attacks, symmetric concealment in
+  thickets, hunting drops meat, healing ladder (regen < bed rest <
+  bandages), danger-tiered contracts with occasionally-wrong reports,
+  injury collapse → retrieval + medical surcharge. No death, ever.
+- **Manumission [built — the v1 ending]**: debt 0 (either payment path)
+  → ACCOUNT CLOSED screen; freed agents keep full payouts; rescue
+  re-indentures. Freedom is a state you can fall out of.
 
-Next: combat v0 (the [proposed] section below) — design discussion first.
+**V1 SHIPPED 2026-07-04**: repo github.com/Thunderducky/sky-islands,
+playable at https://thunderducky.github.io/sky-islands/ (web export +
+controls page in docs/). 88 headless tests.
+
+Next (undesigned): what freedom is FOR — first claim, faction contact,
+buying the skiff outright. That conversation opens phase 3+ of the
+roadmap (strategic sim, claims).
 
 ## Design pillars [settled]
 

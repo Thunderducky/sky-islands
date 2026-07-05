@@ -339,7 +339,7 @@ arrays. New player fields default on load (`snap.player.hunger or 0`).
   `pairs()` is fine.
 - No wall clock in sim; `os.time` only seeds `new_game`.
 
-## Combat v0 (spec agreed 2026-07-04 — NOT yet built)
+## Combat v0 (BUILT 2026-07-04 — this section is now descriptive)
 
 Scope guard: no equipment, no armor, no damage types this pass — one
 damage number, simple healing. No death: hp 0 routes through the rescue
@@ -451,6 +451,35 @@ run.lua (rescue reason, sleep), islandgen.lua (spawns), save.lua
 flavor defs. Tests: AI unit on hand-built maps (see/hunt/lose/wander),
 concealment rule, combat math, regen gating, sleep clamp, integration
 (provoke → kill → drops; collapse-by-injury → medical invoice).
+
+## Manumission (built — the v1 ending)
+
+Freedom is derived, not stored: free = `State.persist.debt == 0`. The
+transition is detected at the two payment sites and fires the
+ACCOUNT CLOSED screen (`states/manumission.lua`) exactly once per
+zero-crossing:
+- settle: `report.lua` [R] routes through manumission when
+  `debt_before > 0 and debt_after == 0`, then home.
+- store: the `[d]` payment that lands on 0 pops the shop and pushes it.
+Rules: garnish clamps to what's owed (`min(garnish, debt)` in
+contract.settle — freed agents keep full payouts); the sidebar debt
+line reads FREE; the store hides `[d]` and refuses payments with
+`no_debt`; **rescue fees re-open the account** (re-indenture, with
+flavor) — the door out swings both ways, so the hunger clock still
+matters post-"win".
+
+## Web export & deployment (v1)
+
+- `usagi export --target web` (run in this directory) → `sky-islands-web.zip`
+  (index.html + usagi.{js,wasm} + game.usagi).
+- The repo root is `../` (the roguelike/ folder); GitHub Pages serves
+  `../docs/` on main: `docs/index.html` is the hand-written landing page
+  (controls + framed iframe), `docs/play/` is the unzipped export.
+- **To redeploy after changes**: re-export, `unzip -o sky-islands-web.zip
+  -d ../docs/play`, restore the `<title>Sky Islands</title>` (export
+  writes "Usagi"), commit, push. Pages rebuilds automatically.
+- Live: https://thunderducky.github.io/sky-islands/ (repo:
+  github.com/Thunderducky/sky-islands, public).
 
 ## Rust escape hatch (design constraint, not current work)
 

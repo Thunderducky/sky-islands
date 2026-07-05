@@ -12,6 +12,11 @@ settled/leaning/proposed) → `SPEC.md` (technical contracts) → this file
   system Lua 5.4. ALWAYS run after changes; keep at 0 failures.
 - Engine API reference: `meta/usagi.lua` (typed stubs), `USAGI.md` (docs).
   Grep those before assuming an engine call exists.
+- Deploy: `usagi export --target web`, unzip over `../docs/play/`, fix the
+  page `<title>` back to "Sky Islands", commit, push (see SPEC "Web
+  export & deployment"). Live at https://thunderducky.github.io/sky-islands/
+  — repo github.com/Thunderducky/sky-islands (Eric's PERSONAL account
+  Thunderducky; never TeleVet). Repo root is `../` (roguelike/).
 
 ## Hard rules (violating these breaks invisible contracts)
 
@@ -63,12 +68,18 @@ settled/leaning/proposed) → `SPEC.md` (technical contracts) → this file
   ASCII-authored maps; the hub (The Tether). `world/fov.lua` —
   shadowcasting; fog: 0 unknown / 1 remembered / 2 visible; sky is
   fog-exempt (always drawn).
-- `sim/actions.lua` — turn verbs (move, toggle_door, wait, submit).
-  `sim/turn.lua` — applies verb, advances clock, hunger tick (returns
-  "collapse"), post-hooks. `sim/needs.lua` — hunger states/eat.
-  `sim/inventory.lua` — slot/stack math (every holder is a capped slot
-  list; only caps differ). `sim/contract.lua` — settle(): fee + bounty +
-  coverage bonus, garnished; goods stay physical (company-town model).
+- `sim/actions.lua` — turn verbs (move — incl. bump attack, toggle_door,
+  wait, submit). `sim/turn.lua` — applies verb, advances clock, hunger
+  tick, CREATURE PHASE, collapse checks (hunger or hp<=0 return
+  "collapse"). `sim/needs.lua` — hunger states, passive regen, use()
+  (nutrition eats / heal bandages). `sim/creatures.lua` — AI
+  (wander/hunt, symmetric concealment via `conceals` terrain flag,
+  per-turn derived RNG) + combat math + drops. `sim/inventory.lua` —
+  slot/stack math (every holder is a capped slot list; only caps
+  differ). `sim/contract.lua` — settle(): fee + bounty + coverage bonus,
+  garnish clamped to debt owed; goods stay physical (company-town
+  model). `defs/creatures.lua` — the roster; danger tiers scale spawns
+  (economy.danger). Manumission at debt 0; rescue re-indentures.
 - `ui/layout.lua` — THE 78x28 cell grid + margins; all positioning goes
   through `L.text/L.px/L.py`. `ui/draw.lua` — map/sidebar/log renderer.
 - `defs/init.lua` — loader: id interning, copy_from inheritance (metatable),
@@ -88,7 +99,12 @@ settled/leaning/proposed) → `SPEC.md` (technical contracts) → this file
   UI works on it automatically via `container_here` in play.lua. Flags:
   `take_only` (forage; stow refused, emptied feature removed via
   `on_empty`), `prices` on the container (shop). `slots` caps it.
-- **Food**: an item def with `nutrition`. Eaten from the inventory screen.
+- **Food**: an item def with `nutrition`; **healing item**: `heal`. Both
+  used from the inventory screen (Space).
+- **Creature**: one table in `defs/creatures.lua` (glyph ASCII, max_hp,
+  damage {min,max}, acc, speed mp/turn, aggro_radius — 0 = docile/
+  retaliates, drops). Add to spawn mix in islandgen.spawn_creatures or
+  economy.danger.spawns. AI behavior itself lives in sim/creatures.lua.
 - **Hub amenity / authored map**: add a legend char + row art in
   `world/hubgen.lua` (rows must stay equal-width); container init in
   hubgen's post-stamp loop; interaction wiring in play.lua's `interact()`.

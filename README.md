@@ -1,5 +1,7 @@
 # Sky Islands
 
+**[Play it in your browser](https://thunderducky.github.io/sky-islands/)**
+
 An ASCII roguelike about debt. You are a surveyor indentured to the
 Meridian Survey Company, charting floating islands out past the safe
 lanes. Land, chart under fog of war, open what you find, come back
@@ -19,10 +21,21 @@ cd sky-islands
 usagi dev .     # live reload; F5 = hard reset
 ```
 
-**Controls**: arrows/hjkl move (yubn diagonals) · `g` open container /
-loot · `Space` interact (coordinator, beacon, bunk, store) · `i` pack
-(Space to eat/bandage) · `x` examine · `o` doors · `.` wait ·
-`Backspace` close menus · `Esc` engine pause menu.
+**Controls**: arrows/hjkl move (yubn diagonals; walk into creatures to
+attack) · `g` open container / loot · `Space` interact (coordinator,
+beacon, bunk, store) · `i` pack (Space to eat/bandage) · `Tab` switch
+panes when trading · `d` pay down debt at the store · `x` examine ·
+`o` doors · `.` wait · `Backspace` close menus · `Esc` engine pause menu.
+
+## Re-deploying the web build
+
+```
+cd sky-islands && usagi export --target web
+unzip -o sky-islands-web.zip -d ../docs/play
+# restore the page title (export writes "Usagi"):
+sed -i '' 's|<title>Usagi</title>|<title>Sky Islands</title>|' ../docs/play/index.html
+git commit -am "redeploy" && git push   # GitHub Pages rebuilds from docs/
+```
 
 ## Develop
 
