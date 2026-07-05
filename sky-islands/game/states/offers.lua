@@ -30,10 +30,13 @@ function S.draw(self)
   gfx.rect(px - 4, py - 4, pw + 8, ph + 8, P.BLUE + 5)
   L.text(x, y, "SURVEY CONTRACTS  -  posting cycle " .. State.cycle, P.BLUE + 6)
 
+  -- Column plan (offsets from x, panel is 46 cells wide): id 0-7,
+  -- danger 10-16, blurb 20-33, fee 38-42 — each with a clear gap so a
+  -- long danger word or a 4-digit fee never runs into its neighbor.
   local DANGER = {
-    { "reported: calm", P.GREEN + 5 },
-    { "reported: uneasy", P.GOLD + 4 },
-    { "reported: hostile", P.RED + 5 },
+    { "calm", P.GREEN + 5 },
+    { "uneasy", P.GOLD + 4 },
+    { "hostile", P.RED + 5 },
   }
   for i, offer in ipairs(self.offers) do
     local cy = y + 1 + i * 2
@@ -43,9 +46,9 @@ function S.draw(self)
     L.text(x, cy, string.format("Isle-%03d", offer.seed % 1000),
       i == self.cur and P.WHITE or P.UI_TEXT)
     local d = DANGER[offer.reported]
-    L.text(x + 12, cy, d[1], d[2])
-    L.text(x + 32, cy, "survey and report", P.UI_DIM)
-    L.text(x + 40, cy, string.format("%4dc", offer.fee), P.GOLD + 5)
+    L.text(x + 10, cy, d[1]:upper(), d[2])
+    L.text(x + 20, cy, "uncharted isle", P.UI_DIM)
+    L.text(x + 38, cy, string.format("%4dc", offer.fee), P.GOLD + 5)
   end
 
   L.text(x, y + #self.offers * 2 + 3,

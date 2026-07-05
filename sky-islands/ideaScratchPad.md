@@ -1,4 +1,4 @@
-# Next features
+## Next features
 * Having to fuel and repair the skiff
 * Equipment
 * Skills + Skill Points
@@ -8,3 +8,6 @@
 
 ## Questions
 * How would having creatures faster than the player work, ie, 200 or something
+
+## Bug List
+- Contract screen for rewards has overlap that needs to be fixed
