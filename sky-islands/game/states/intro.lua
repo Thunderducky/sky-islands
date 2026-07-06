@@ -3,8 +3,6 @@ local P = require("palette")
 
 local S = {}
 
-local TITLE = "SKY ISLANDS"
-
 function S.enter(self)
   self.saved = require("game.save").read()
 end
@@ -12,13 +10,8 @@ end
 function S.draw(self)
   gfx.clear(P.GRAY + 1)
 
-  -- title in a blue-ramp gradient, scale 2
-  local tx = (640 - #TITLE * 12) // 2
-  for i = 1, #TITLE do
-    local step = math.min(6, 2 + ((i - 1) * 5) // #TITLE + 1)
-    gfx.text_ex(TITLE:sub(i, i), tx + (i - 1) * 12, 36, 2, 0, P.BLUE + step, 1.0)
-  end
-
+  -- no title header here — the previous screen (titlescreen.lua) already
+  -- showed it; repeating it back-to-back would read as a mistake.
   local eco = State.defs.economy
   local lines = {
     { "", 0 },

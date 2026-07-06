@@ -33,7 +33,7 @@ function _init()
     defs = defs.load(),
     stack = statestack.new(),
   }
-  State.stack:push(require("game.states.intro"))
+  State.stack:push(require("game.states.titlescreen"))
 end
 
 function _update(dt)

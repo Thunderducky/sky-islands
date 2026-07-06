@@ -110,8 +110,23 @@ def write_art_lua(data_out, lua_out):
     with open(data_out) as f:
         data = json.load(f)
     entries = []
+    sources = {}  # name -> source path, for the duplicate-name error message
     for frame in data["frames"]:
         name = os.path.splitext(os.path.basename(frame["filename"]))[0]
+        if name in sources:
+            print(
+                f"\n!! ERROR: two source files both name the sprite "
+                f"'{name}':\n"
+                f"     {sources[name]}\n"
+                f"     {frame['filename']}\n"
+                f"   Names are the Lua key (art.{name}) and must be unique "
+                f"across ALL zones, not just within one folder. A duplicate "
+                f"silently overwrites in the Lua table with no error at "
+                f"runtime — rename one of the files and re-run.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        sources[name] = frame["filename"]
         r = frame["frame"]
         entries.append((name, r["x"], r["y"], r["w"], r["h"]))
     entries.sort(key=lambda e: e[0])

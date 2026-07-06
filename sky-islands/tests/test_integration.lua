@@ -10,12 +10,14 @@ local counting = function() draw_calls = draw_calls + 1 end
 local SAVED = nil
 gfx = {
   clear = counting, text = counting, text_ex = counting,
-  rect = counting, rect_fill = counting,
+  rect = counting, rect_fill = counting, sspr = counting, sspr_ex = counting,
+  COLOR_TRUE_WHITE = 0,
 }
 usagi = {
   quit = noop,
   save = function(t) SAVED = t end,
   load = function() return SAVED end,
+  measure_text = function(s) return #s * 6, 12 end,
 }
 input = { key_pressed = function() return false end }
 for i, name in ipairs({ "UP", "DOWN", "LEFT", "RIGHT", "H", "J", "K", "L",
@@ -46,6 +48,19 @@ return {
   full_loop = function(t)
     _config()
     _init()
+
+    -- titlescreen -> intro, driven for real (exercises the actual draw
+    -- and key code, not just that the files parse). new_game() itself
+    -- is still called directly with a pinned seed below rather than via
+    -- intro's own [Space]/[N] handler, which seeds off os.time() and
+    -- would make the rest of this test non-deterministic.
+    t.ok(State.stack:top() ~= nil, "titlescreen is the first state")
+    State.stack:draw(0.016) -- exercises sspr_ex/dither/text_ex/measure_text
+    local title = State.stack:top()
+    State.stack:key("space")
+    t.ok(State.stack:top() ~= title, "space advances past the title screen")
+    State.stack:draw(0.016) -- exercises the (now header-less) intro draw
+
     require("game.run").new_game(12345) -- pinned seed: test must be deterministic
     local hub = State.island
     t.ok(hub.is_hub, "game starts at the hub")
@@ -220,6 +235,7 @@ return {
 
     -- continue-from-save path drives the same restore through the intro
     _init()
+    State.stack:key("space") -- past the title screen
     State.stack:key("c")
     t.ok(State.island and State.island.is_hub, "continue lands at the hub")
     t.eq(State.persist.debt, debt_snap, "continue restores the debt")
