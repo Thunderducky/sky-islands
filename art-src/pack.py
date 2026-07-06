@@ -165,9 +165,12 @@ def main():
     with open(data_out) as f:
         meta = json.load(f)["meta"]
     w, h = meta["size"]["w"], meta["size"]["h"]
+    used_pct = (w * h) / (args.max_size * args.max_size) * 100
     print(f"\nWrote {os.path.relpath(sheet_out, REPO)}: {w}x{h}, "
           f"{len(entries)} entries")
     print(f"Wrote {os.path.relpath(lua_out, REPO)}")
+    print(f"Budget: {used_pct:.1f}% of the {args.max_size}x{args.max_size} "
+          f"theoretical canvas ({w * h:,} / {args.max_size * args.max_size:,} px²)")
 
     if w > args.max_size or h > args.max_size:
         print(f"\n!! WARNING: sheet is {w}x{h}, over the {args.max_size} "
