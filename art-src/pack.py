@@ -35,6 +35,13 @@ READY = os.path.join(ROOT, "ready")
 BUILD = os.path.join(ROOT, "_build")
 SKY = os.path.join(REPO, "sky-islands")
 
+# Reference footprints from proposals/art-pipeline.md, used only to turn
+# leftover budget into a human-readable "roughly how many more of X"
+# estimate. Pure area division, not a packing simulation — real capacity
+# will be a bit lower once padding/fragmentation are accounted for.
+INTERLUDE_SIZE = (640, 228)  # visible band above the text panel
+PORTRAIT_SIZE = (128, 128)   # 96x96 native, padded to a round grid cell
+
 ASEPRITE_CANDIDATES = [
     os.path.expanduser(
         "~/Library/Application Support/Steam/steamapps/common/Aseprite/"
@@ -132,6 +139,9 @@ def main():
                      help="write to art-src/_build/ instead of sky-islands/")
     ap.add_argument("--max-size", type=int, default=4096,
                      help="safety cap for either sheet dimension (default 4096)")
+    ap.add_argument("--tile-size", type=int, default=32,
+                     help="assumed square tile size for the remaining-budget "
+                          "estimate (default 32; try 16 or 64 for other plans)")
     args = ap.parse_args()
 
     files = gather_sources()
@@ -171,6 +181,22 @@ def main():
     print(f"Wrote {os.path.relpath(lua_out, REPO)}")
     print(f"Budget: {used_pct:.1f}% of the {args.max_size}x{args.max_size} "
           f"theoretical canvas ({w * h:,} / {args.max_size * args.max_size:,} px²)")
+
+    remaining = max(0, args.max_size * args.max_size - w * h)
+    interlude_area = INTERLUDE_SIZE[0] * INTERLUDE_SIZE[1]
+    portrait_area = PORTRAIT_SIZE[0] * PORTRAIT_SIZE[1]
+    tile_area = args.tile_size * args.tile_size
+    remaining_interludes = remaining // interlude_area
+    remaining_portraits = remaining // portrait_area
+    remaining_tiles = remaining // tile_area
+    print(f"Remaining ({100 - used_pct:.1f}% of budget) could hold roughly "
+          f"{remaining_interludes:,} more interludes "
+          f"({INTERLUDE_SIZE[0]}x{INTERLUDE_SIZE[1]}), OR "
+          f"{remaining_portraits:,} more portraits "
+          f"({PORTRAIT_SIZE[0]}x{PORTRAIT_SIZE[1]}), OR "
+          f"{remaining_tiles:,} more {args.tile_size}x{args.tile_size} tiles "
+          f"— these are alternatives, not additive; area estimate, not a "
+          f"packing guarantee.")
 
     if w > args.max_size or h > args.max_size:
         print(f"\n!! WARNING: sheet is {w}x{h}, over the {args.max_size} "
