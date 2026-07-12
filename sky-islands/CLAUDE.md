@@ -12,6 +12,9 @@ settled/leaning/proposed) → `SPEC.md` (technical contracts) → this file
   system Lua 5.4. ALWAYS run after changes; keep at 0 failures.
 - Engine API reference: `meta/usagi.lua` (typed stubs), `USAGI.md` (docs).
   Grep those before assuming an engine call exists.
+- Tasks: `dev/task.sh` (see "Task tracking" below). Test scenarios:
+  `dev/scenario.sh {list|save|load|restore}` — swaps the live save between
+  named dev fixtures (see TECHDEBT.md: these are regenerated, not migrated).
 - Deploy: `usagi export --target web`, unzip over `../docs/play/`, fix the
   page `<title>` back to "Sky Islands", commit, push (see SPEC "Web
   export & deployment"). Live at https://thunderducky.github.io/sky-islands/
@@ -25,6 +28,26 @@ settled/leaning/proposed) → `SPEC.md` (technical contracts) → this file
   touches anything under `sky-islands/` outside `tests/`, re-export the
   web build (previous bullet) BEFORE tagging — the tag should match
   what's actually live.
+
+## Task tracking
+
+`dev/task.sh {new|list|show|move}` — kanban-in-folders under `tasks/`.
+Each task is a markdown file, id `SI-####` stamped in its frontmatter and
+filename; `move` relocates the file and rewrites its `status:` line.
+
+- **backlog**: scratch ideas, can be disparate and half-formed. Low bar —
+  just capture it.
+- **todo**: promoted once it's scoped enough that Claude could implement
+  it, AND Eric has said yes we definitely want to try this. Both bars,
+  not just one.
+- **in-progress**: meant to stay rare — actively building + verifying,
+  ideally ~1 at a time. `task.sh move` warns (doesn't block) if something
+  else is already here.
+- **completed**: verified + accepted. Source material for CHANGELOG
+  entries (see Releases below) — don't let these pile up unmined.
+- `--spike` on `new` marks investigation work (try it on a branch, see
+  what's learned, not committed to landing) rather than committed
+  work — still moves through the same four folders.
 
 ## Hard rules (violating these breaks invisible contracts)
 

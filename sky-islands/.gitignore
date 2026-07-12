@@ -1,3 +1,9 @@
 export/
 *.zip
 web-build/
+dev/scenarios/
+# local-only project management (never publish)
+tasks/
+dev/
+BUGS.md
+TECHDEBT.md
