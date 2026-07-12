@@ -23,44 +23,66 @@ slice: what each file is, what the data looks like, and how it fits together.*
 
 ```
 sky-islands/
-  main.lua              -- usagi callbacks; owns State; delegates to game/state
-  palette.lua           -- Apollo ramp constants (exists)
-  palette.png           -- Apollo palette (exists)
+  main.lua              -- usagi callbacks; owns State; loads debugflags
+  flavor.lua            -- narration engine: pool pick + {slot} fill -> log
+  debugflags.lua        -- OPTIONAL, gitignored: local dev flags (CLAUDE.md)
+  palette.lua           -- Apollo ramp constants
+  palette.png           -- Apollo palette
+  sprites.png           -- packed art (art-src/ pipeline at repo root)
   SPEC.md               -- this file
   game/
-    state.lua           -- state-stack machine (push/pop/switch)
+    state.lua           -- state-stack machine (push/pop/switch, opaque)
+    run.lua             -- game flow: new/continue, missions, sleep, rescue
+    save.lua            -- versioned snapshot/restore (hard rule 10)
     states/
-      intro.lua         -- situation text, contract terms, "press any key"
-      play.lua          -- the game: input->actions, camera, turn advance
-      inventory.lua     -- overlay: list menu over play
+      titlescreen.lua   -- art banner -> intro
+      intro.lua         -- new game / continue
+      play.lua          -- the game: input->actions, interact, containers
+      inventory.lua     -- overlay: pack + hunger meter + use item
       examine.lua       -- overlay: cursor look-around
-      report.lua        -- payout math screen; restart/quit
+      transfer.lua      -- two-pane container/shop UI (scroll, demand marks)
+      offers.lua        -- contract board
+      confirm.lua       -- generic y/n overlay (+extra_keys detours)
+      gossip.lua        -- shopkeeper market-event news overlay
+      sleepwipe.lua     -- sleep transition: wipe in, hold dark, wipe out
+      report.lua        -- survey payout letter (opaque)
+      rescued.lua       -- retrieval invoice
+      manumission.lua   -- ACCOUNT CLOSED ending (opaque)
   world/
-    substrate.lua       -- Grid: flat-array layers + sparse overlays
-    islandgen.lua       -- seed -> island (silhouette, buildings, caches)
-    fov.lua             -- shadowcasting; writes fog layer
+    substrate.lua       -- flat-array layers + sparse overlays (single owner)
+    islandgen.lua       -- seed -> island (silhouette, buildings, caches, forage)
+    prefab.lua          -- ASCII-authored maps
+    hubgen.lua          -- The Tether (hand-authored prefab)
+    authored.lua        -- mission island from a defs/islands.lua spec (no RNG)
+    fov.lua             -- shadowcasting; fog layer + seen_count
   sim/
-    actions.lua         -- action defs: move/open/close/pickup/wait/submit
-    turn.lua            -- applies an action, advances clock, ticks hooks
-    contract.lua        -- coverage %, findings, payout math
+    actions.lua         -- turn verbs: move/bump, door, wait, submit
+    turn.lua            -- applies a verb, clock, hunger, creatures, collapse
+    contract.lua        -- coverage %, bounties, garnish math
+    creatures.lua       -- AI, combat math, concealment, drops
+    needs.lua           -- hunger states, regen, use (eat/heal)
+    inventory.lua       -- slot/stack math for every holder
+    market.lua          -- econ events: lifecycle, selection, restock
   ui/
     draw.lua            -- glyph-grid renderer (map, sidebar, log frame)
     log.lua             -- message ring buffer
     menu.lua            -- generic vertical list-picker widget
-    layout.lua          -- the 80x30 cell geometry constants
+    layout.lua          -- the 78x28 cell geometry constants
   defs/
-    init.lua            -- def loader: registers tables, resolves copy_from
-    terrain.lua         -- floors, walls, doors, sky
-    items.lua           -- slice item set
-    features.lua        -- caches, extraction beacon
+    init.lua            -- loader: interning, copy_from, cross-ref checks
+    terrain.lua, items.lua, features.lua, creatures.lua
+    islands.lua         -- hand-authored mission islands (map+legend specs)
+    econ_events.lua     -- market events (human-authored text + effects)
+    economy.lua         -- every tunable number (hard rule 7)
     flavor.lua          -- event-keyed narration template pools
+    art.lua             -- sprite atlas slices
   util/
-    rng.lua             -- seedable PRNG (no math.random)
+    rng.lua             -- SplitMix64: new/fork/derive (no math.random)
     grid.lua            -- idx<->xy helpers, neighbors, line, flood fill
   tests/
     run.lua             -- tiny assert runner: `lua tests/run.lua`
-    test_substrate.lua, test_fov.lua, test_gen.lua, test_contract.lua,
-    test_rng.lua
+    test_substrate/fov/gen/contract/rng/grid/log/flavor/needs/
+    inventory/creatures/market/integration.lua
 ```
 
 ## Screen layout (`ui/layout.lua`)
@@ -467,6 +489,125 @@ line reads FREE; the store hides `[d]` and refuses payments with
 `no_debt`; **rescue fees re-open the account** (re-indenture, with
 flavor) — the door out swings both ways, so the hunger clock still
 matters post-"win".
+
+## Market events (BUILT 2026-07-11 — this section is descriptive)
+
+Multi-cycle economic events at the company store: diegetic causes
+("patrol ship in for repairs") that move prices on BOTH sides of the
+counter and reshape restock. SI-0002; the trading arc's ground floor.
+
+### Event defs (`defs/econ_events.lua`)
+One self-contained table per event — authoring guide comment sits at the
+top of the file. Fields: `id, name, weight, duration = {min,max},
+cooldown, min_cycle, effects, add_stock?, gossip = {lines}, log`.
+- `effects[]`: `{ match, demand?, restock_mult? }`. `match` is
+  `{ id = "item_id" }` or `{ has = "field" }` (property predicate:
+  `nutrition` = food, `heal` = medical — no tag system). First matching
+  effect wins (`market.effect_for`).
+- `demand` is a SEMANTIC LEVEL — glut | low | high | critical — mapped
+  to numbers in ONE place: `economy.demand_levels[level] = {pay, charge}`.
+  Events never carry raw multipliers.
+- `add_stock` uses the loot-table entry shape `{item, min, max, chance}`.
+- Load-time cross-ref checks in `defs/init.lua` fail on unknown item ids,
+  unknown demand levels, missing gossip/log/duration.
+
+### Price contract (`game/states/transfer.lua` + `sim/market.lua`)
+The store's container gets `prices = { buy, sell, market = true }` (set
+in play.lua's `container_here`). With `market` set:
+- store charges: `max(1, ceil(value * buy_mult * charge_mult))`
+- store pays:    `floor(value * sell_mult * pay_mult)`
+`charge_mult`/`pay_mult` come from the active event's matching effect's
+demand level, else 1. The spread (the garnish) survives all events.
+
+### State & lifecycle (`sim/market.lua`)
+`State.market = { event = {id, cycles_left, gossip_seen}|nil,
+cooldowns = {[id]=n}, last_event }` — created by `market.init()` in
+new_game, serialized in saves (version 1, defaults on load; events whose
+defs vanished are dropped).
+
+`market.advance(S)` runs EXACTLY ONCE per cycle increment (called from
+return_to_hub and rescue, right after cycle++):
+1. decrement cooldowns
+2. active event ticks down; on end: set its cooldown, record last_event,
+   return { ended } — an ending cycle is ALWAYS quiet (no new roll)
+3. else roll `econ_events.start_chance` from
+   `rng.derive(master, "econ-event:<cycle>")`; weighted pick over defs
+   eligible by cooldown/min_cycle/not-last_event; roll duration;
+   return { started }
+Caller (run.lua `turn_market`) narrates via flavor keys `market_news`
+(fills `{line}` with the def's `log`) and `market_settled`. advance()
+itself never logs — it is the DIRECTOR SEAM: a tension-balancing/
+personality director later replaces this picker without touching defs.
+
+### Restock (`market.build_stock`)
+Rebuilt every cycle from `rng.derive(master, "market:<cycle>")`:
+`economy.store.staples` (always) + `economy.store.grab_bag` (loot-table
+rolls) — each scaled by the matching effect's `restock_mult` (0 = absent)
+— then the active event's `add_stock` appended. Grab-bag chance+count
+are rolled UNCONDITIONALLY so an active event never shifts the draw
+sequence of unrelated entries.
+
+### Surfacing
+- Gossip overlay (`states/gossip.lua`): shown once per event instance —
+  play.lua's trader interact pushes it over the transfer UI while
+  `event.gossip_seen` is false. Line pick derives from
+  (master, "gossip:<id>:<cycle>").
+- Transfer UI: `^`/`v` demand markers per matched row (DEMAND_MARK),
+  "word at the counter: <event name>" line, panes scroll past MAX_ROWS.
+- Writing principle (Eric): gossip shows, UI states — lines are partial
+  and observational; markers carry the explicit facts.
+
+### Files
+`defs/econ_events.lua`, `sim/market.lua`, `defs/economy.lua`
+(demand_levels, econ_events, store, trader_slots), `game/run.lua`
+(turn_market + data-driven restock), `game/save.lua` (market field),
+`game/states/{gossip,transfer,play}.lua`, `defs/flavor.lua`
+(market_news/market_settled), `tests/test_market.lua`.
+
+## Latent island features (BUILT 2026-07-11 — descriptive)
+
+Features worth nothing to USE yet, worth money to REPORT (SI-0003):
+old factory, ore deposit, magical inscription, freshwater spring, grand
+pre-Fracture ruin. The claims system exploits them later — for free,
+because islands are pure functions of seed (no storage needed).
+
+- **Defs** (`defs/features.lua`): `latent = true, discover =
+  "sight"|"assay", reportable = true, bounty, weight`. Load-time check
+  enforces discover mode + bounty.
+- **Two discovery modes**: `sight` features are surveyed the moment
+  first rendered visible (`sim/discovery.lua scan_sight`, called after
+  every FOV update — turn.lua post-hooks and enter_island). `assay`
+  features need deliberate work: Space on the tile → `assay` turn verb
+  (sim/actions.lua) → costs a turn. Thoroughness is now a choice
+  distinct from coverage.
+- **Found list**: `S.run.notable` — SEPARATE from run.discovered so
+  caches_found stays honest. settle() pays bounties from both and
+  returns `notable = {names}`; the report letter shows a "notable
+  features (n)" line (row 9). `f.found` persists via the feature
+  serializer.
+- **Placement** (`world/islandgen.lua`, after caches): counts per
+  danger tier from `economy.danger.latent`, weighted def pick, any
+  reachable open tile. Hostile islands have better bones.
+- **Flavor keys**: latent_sighted, assay_hint (stepping on unconfirmed),
+  assay_done, assay_already.
+- **Footprints (SI-0023, built 2026-07-11)**: a latent def may carry
+  `footprint = { rows, legend }` — prefab-style, but SPACE CELLS ARE
+  OUTSIDE THE MASK (untouched ground; shapes can be rings/crosses/Ls).
+  Exactly one `@` cell (legend `rep = true`): the representative tile
+  that carries the feature entry, bounty, and instance origin
+  (`f.ox/f.oy`, serialized as scalars). Membership = origin + offset
+  against the mask via `sub.feature_covering(island, x, y)` — no
+  per-tile entries. Sight discovery fires when ANY mask tile becomes
+  visible; assay/Space work from any mask tile. Footprints stamp their
+  own terrain (wall_stone / rubble / water_shallow, all `built = true`)
+  and are placed BEFORE the beacon+cache flood so pathing routes around
+  their walls; island validity requires every rep tile reachable.
+  Instances without an origin (debug force_latent, authored maps)
+  degrade to single-tile behavior. Caches may land inside footprints —
+  a ruin wrapping a strongbox is emergent, not a bug.
+- Deferred (noted in tasks/): seen-but-unconfirmed features listed as
+  "unconfirmed" in the report — estimate-error fiction in miniature;
+  footprints that CONTAIN things by design (SI-0010 on-ramp).
 
 ## Web export & deployment (v1)
 

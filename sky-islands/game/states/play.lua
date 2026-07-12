@@ -79,9 +79,27 @@ local function interact(S_)
       S_.stack:push(require("game.states.gossip"), ev)
     end
   elseif id == "bunk" then
-    require("game.run").sleep()
+    -- sleeping passes time and saves: worth a deliberate yes
+    S_.stack:push(require("game.states.confirm"), {
+      text = "Sleep until morning? (heals, hungers, saves)",
+      extra_hint = "[G] open your lockbox first",
+      extra_keys = {
+        g = function()
+          S_.stack:push(require("game.states.transfer"), container_here(S_))
+        end,
+      },
+      on_yes = function()
+        S_.stack:push(require("game.states.sleepwipe"))
+      end,
+    })
   elseif id == "skiff_dock" then
     S_.stack:push(require("game.states.transfer"), container_here(S_))
+  elseif sub.feature_covering(S_.island, S_.player.x, S_.player.y) then
+    -- on (or inside the footprint of) a latent feature: survey work, or
+    -- replaying a logged find; a real assay costs a turn like any verb
+    if turn.take(S_, "assay") == "collapse" then
+      require("game.run").rescue()
+    end
   end
 end
 

@@ -15,6 +15,8 @@ settled/leaning/proposed) → `SPEC.md` (technical contracts) → this file
 - Tasks: `dev/task.sh` (see "Task tracking" below). Test scenarios:
   `dev/scenario.sh {list|save|load|restore}` — swaps the live save between
   named dev fixtures (see TECHDEBT.md: these are regenerated, not migrated).
+- Market sanity: `lua dev/market_sim.lua [seed] [cycles]` — headless
+  cycle-by-cycle event/price/stock printout for eyeballing the economy.
 - Deploy: `usagi export --target web`, unzip over `../docs/play/`, fix the
   page `<title>` back to "Sky Islands", commit, push (see SPEC "Web
   export & deployment"). Live at https://thunderducky.github.io/sky-islands/
@@ -28,6 +30,35 @@ settled/leaning/proposed) → `SPEC.md` (technical contracts) → this file
   touches anything under `sky-islands/` outside `tests/`, re-export the
   web build (previous bullet) BEFORE tagging — the tag should match
   what's actually live.
+
+## Debug flags
+
+`debugflags.lua` next to main.lua (gitignored, optional) returns a table
+of local dev flags, loaded into `State.debug` at `_init`. Nil in normal
+play — every consumer must be nil-safe. Flags apply at `new_game` only;
+saves and continues never carry debug state. When active it prints to
+the console and stamps "[debug flags active]" into the message log — a
+flagged session is not a real playtest. **Delete/rename the file before
+`usagi export`** — the bundler doesn't read .gitignore.
+
+```lua
+return {
+  skip_title = true,            -- jump straight past the title screen
+  master_seed = 12345,          -- pin the world seed
+  credits = 500, debt = 100,    -- starting wallet overrides
+  force_event = { id = "patrol_repairs", cycles = 3 },
+  force_latent = true,          -- every mission island gets one of each
+                                -- latent def (or pass a list of ids);
+                                -- unlike other flags, applies per MISSION
+  invulnerable = true,          -- live: attacks roll/swing but never wound
+  no_hunger = true,             -- live: hunger frozen (regen still runs)
+  docile_creatures = true,      -- live: nothing hunts or holds a grudge
+  force_level = "proving_grounds", -- new games start ON this authored
+                                -- island (defs/islands.lua); it also
+                                -- stays on the board for re-entry
+  reveal_fog = true,            -- pre-remember all tiles (coverage-honest)
+}
+```
 
 ## Task tracking
 
@@ -83,11 +114,16 @@ filename; `move` relocates the file and rewrites its `status:` line.
 
 ## Architecture map
 
-- `main.lua` — engine callbacks, key table, builds State. Wiring only.
+- `main.lua` — engine callbacks, key table, builds State (+ loads
+  debugflags). Wiring only.
 - `game/state.lua` — state STACK; overlays draw over play, top gets input.
-- `game/states/` — intro (new/continue), play, transfer (two-pane
-  container/shop/forage UI), inventory (pack + hunger meter + eat),
-  examine, offers (contract board), report, rescued (retrieval invoice).
+- `game/states/` — titlescreen, intro (new/continue), play, transfer
+  (two-pane container/shop/forage UI; scrolls; demand markers), inventory
+  (pack + hunger meter + eat), examine, offers (contract board), confirm
+  (generic y/n overlay; `extra_keys` adds detours like [G] open hold),
+  gossip (market-event news, once per event), sleepwipe (sleep
+  transition; sleep() fires at full dark, holds for Space), report,
+  rescued (retrieval invoice), manumission.
   Each: `{enter?, leave?, update?, draw, key?}`.
 - `game/run.lua` — flow: new_game/continue_game → hub; offers();
   start_mission; return_to_hub (cycle++, restock, autosave); rescue()
@@ -100,7 +136,8 @@ filename; `move` relocates the file and rewrites its `status:` line.
   shadowcasting; fog: 0 unknown / 1 remembered / 2 visible; sky is
   fog-exempt (always drawn).
 - `sim/actions.lua` — turn verbs (move — incl. bump attack, toggle_door,
-  wait, submit). `sim/turn.lua` — applies verb, advances clock, hunger
+  wait, submit, assay). `sim/discovery.lua` — latent-feature discovery
+  (sight scan after FOV updates + the assay work; run.notable list). `sim/turn.lua` — applies verb, advances clock, hunger
   tick, CREATURE PHASE, collapse checks (hunger or hp<=0 return
   "collapse"). `sim/needs.lua` — hunger states, passive regen, use()
   (nutrition eats / heal bandages). `sim/creatures.lua` — AI
@@ -129,7 +166,22 @@ filename; `move` relocates the file and rewrites its `status:` line.
   Anything with `.loot`/`.stash`/`.stock` list is a container; the transfer
   UI works on it automatically via `container_here` in play.lua. Flags:
   `take_only` (forage; stow refused, emptied feature removed via
-  `on_empty`), `prices` on the container (shop). `slots` caps it.
+  `on_empty`), `prices` on the container (shop; `market = true` opts the
+  store into event pricing). `slots` caps it.
+- **Latent feature**: one table in `defs/features.lua` with `latent =
+  true, discover = "sight"|"assay", bounty, weight, short` + a flavor
+  line or two. Optional `footprint = { rows, legend }` makes it a
+  multi-tile splat (spaces = outside the mask; exactly one `@` rep cell)
+  — see SPEC "Latent island features" for the full contract. Spawn
+  counts per danger tier: `economy.danger.latent`. Placement and
+  discovery are generic — no code per feature. SI-0020 is the
+  content-generation task.
+- **Econ/market event**: one table in `defs/econ_events.lua` — authoring
+  guide comment at the top of that file, full contract in SPEC "Market
+  events". Effects say semantic demand levels (glut/low/high/critical);
+  numbers live in `defs/economy.lua` `demand_levels`. Store restock
+  (staples + grab bag) also in `economy.lua` `store`. Gossip text style:
+  partial and observational — the UI markers state the facts.
 - **Food**: an item def with `nutrition`; **healing item**: `heal`. Both
   used from the inventory screen (Space).
 - **Creature**: one table in `defs/creatures.lua` (glyph ASCII, max_hp,
@@ -139,6 +191,11 @@ filename; `move` relocates the file and rewrites its `status:` line.
 - **Hub amenity / authored map**: add a legend char + row art in
   `world/hubgen.lua` (rows must stay equal-width); container init in
   hubgen's post-stamp loop; interaction wiring in play.lua's `interact()`.
+- **Authored mission island**: one spec in `defs/islands.lua` (map rows +
+  legend + creatures; exactly one extract_beacon; legend `loot` fills a
+  cache explicitly). `world/authored.lua` builds it — no RNG, no code per
+  island. Play it via debugflags `force_level = "<id>"` (extra board
+  entry); NPC islands (SI-0006) will reuse this format.
 - **Hunger/needs knob**: `defs/economy.lua` `hunger` table + `rescue_fee`.
 - **Narration**: add event pool in `defs/flavor.lua`, call
   `flavor.emit("key", {slot=...})` from sim code. Unknown keys log a
@@ -161,7 +218,18 @@ when adding states or bindings.
 
 ## Delegating to cheaper models
 
-Works well: content defs, flavor plumbing, pure util modules, test files —
-IF you pin exact API contracts in the prompt (see SPEC's build-order tags).
-Keep here: islandgen taste, state wiring, renderer look, anything touching
-State shape. Integration risk is interface drift; tests are the net.
+The gate is the task file: a refined tasks/ entry with pinned decisions
+(see SI-0002 for the gold standard — data shapes, agreed defaults,
+out-of-scope fences) is ready for a smaller model to build; an
+unrefined one is not a build task yet. Design/refinement cycles stay
+with Eric + a stronger model; the task file is the handoff artifact.
+
+Works well: content defs (items, creatures, econ events), flavor
+plumbing, overlay states that follow an existing pattern (confirm/
+gossip are templates), pure util modules, test files — IF the exact API
+contract is pinned (SPEC sections + the "How to add things" recipes
+above are the contracts). Keep here regardless of docs: islandgen
+taste, renderer look, State shape changes, save-format migrations, and
+anything touching hard rules 9–10 (determinism, snapshot ownership) —
+drift there is silent and expensive. Integration risk is interface
+drift; tests are the net (run them, keep 0 failures).

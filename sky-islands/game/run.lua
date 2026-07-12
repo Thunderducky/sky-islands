@@ -28,8 +28,19 @@ local function enter_island(island, id, x, y)
   State.island = island
   State.player.x = x or island.start_x
   State.player.y = y or island.start_y
+  if State.debug and State.debug.reveal_fog then
+    -- debug: pre-remember every tile, keeping coverage math honest
+    for i = 1, island.w * island.h do
+      if island.fog[i] == 0
+          and not State.defs.terrain[island.terrain[i]].is_sky then
+        island.fog[i] = 1
+        island.seen_count = island.seen_count + 1
+      end
+    end
+  end
   fov.update(island, State.defs, State.player.x, State.player.y,
     State.defs.economy.island.fov_radius)
+  require("sim.discovery").scan_sight(State) -- no-op off-mission
 end
 
 local market = require("sim.market")
@@ -54,6 +65,27 @@ local function turn_market()
   end
 end
 
+-- Debug flags (State.debug, see CLAUDE.md) apply here only: new games
+-- absorb them at birth, saves and continues never carry debug state.
+local function apply_debug_flags(master_seed)
+  local dbg = State.debug
+  if not dbg then return master_seed end
+  if dbg.master_seed then master_seed = dbg.master_seed end
+  if dbg.debt then State.persist.debt = dbg.debt end
+  if dbg.credits then State.persist.credits = dbg.credits end
+  if dbg.force_event then
+    local def = State.defs.econ_event_by_id[dbg.force_event.id]
+    if def then
+      State.market.event = { id = def.id,
+        cycles_left = dbg.force_event.cycles or 3, gossip_seen = false }
+    else
+      print("[sky-islands] debug: unknown force_event id " ..
+        tostring(dbg.force_event.id))
+    end
+  end
+  return master_seed
+end
+
 function M.new_game(master_seed)
   State.master = master_seed
   State.cycle = 1
@@ -65,9 +97,23 @@ function M.new_game(master_seed)
   State.world = { islands = {}, current = nil }
   State.mission = nil
   State.market = market.init()
+  State.master = apply_debug_flags(State.master)
   init_session()
+  if State.debug then
+    State.log:push("[debug flags active]", require("palette").RED + 5)
+  end
   enter_island(hubgen.build(State.defs), "hub")
   restock_trader()
+  -- debug force_level: skip the Tether, drop straight onto the authored
+  -- island (the hub still exists underneath for returns/rescues, and the
+  -- level stays pinned to the board for re-entry)
+  local dbg = State.debug
+  local spec = dbg and dbg.force_level
+      and State.defs.island_by_id[dbg.force_level]
+  if spec then
+    return M.start_mission({ authored = spec.id, name = spec.name, seed = 0,
+      fee = 100, danger = spec.danger or 1, reported = spec.danger or 1 })
+  end
   flavor.emit("hub_arrive", {})
   State.stack:switch(require("game.states.play"))
 end
@@ -101,14 +147,115 @@ function M.offers()
       reported = reported, -- what the board says; sometimes it lies
     }
   end
+  -- debug: pin an authored level to the board (appended AFTER the rolls,
+  -- so the flag never perturbs the real offers)
+  local dbg = State.debug
+  if dbg and dbg.force_level then
+    local spec = State.defs.island_by_id[dbg.force_level]
+    if spec then
+      list[#list + 1] = { authored = spec.id, name = spec.name, seed = 0,
+        fee = 100, danger = spec.danger or 1, reported = spec.danger or 1 }
+    else
+      print("[sky-islands] debug: unknown force_level " ..
+        tostring(dbg.force_level))
+    end
+  end
   return list
+end
+
+-- debug: stamp latent features onto a fresh mission island, placement
+-- elegance not guaranteed. force_latent = true -> one of each latent
+-- def; or a list of feature ids. QA tool, applies to every mission
+-- while the flag is set.
+local function debug_force_latent(island)
+  local dbg = State.debug
+  if not (dbg and dbg.force_latent) then return end
+  local sub = require("world.substrate")
+  local G = require("util.grid")
+  local defs = State.defs
+  local ids = {}
+  if dbg.force_latent == true then
+    for _, fd in ipairs(defs.feature_list) do
+      if fd.latent then ids[#ids + 1] = fd.id end
+    end
+  else
+    for _, id in ipairs(dbg.force_latent) do ids[#ids + 1] = id end
+  end
+  local reach = G.flood(island.w, island.h, island.start_x, island.start_y,
+    function(x, y)
+      return defs.terrain[sub.get(island, "terrain", x, y)].walkable
+    end)
+  local cand = {}
+  for idx = 0, island.w * island.h - 1 do
+    if reach[idx] and not island.features[idx] then
+      local x, y = G.xy(idx, island.w)
+      local t = defs.terrain[sub.get(island, "terrain", x, y)]
+      if t.walkable and not t.door then cand[#cand + 1] = { x = x, y = y } end
+    end
+  end
+  -- crude footprint fit: in-bounds, no sky, nothing built, not covered
+  local function fits(fd, ox, oy)
+    local rows = fd.footprint and fd.footprint.rows or { "@" }
+    for ry, row in ipairs(rows) do
+      for rx = 1, #row do
+        if row:sub(rx, rx) ~= " " then
+          local x, y = ox + rx - 1, oy + ry - 1
+          if x < 0 or y < 0 or x >= island.w or y >= island.h then return false end
+          local t = defs.terrain[sub.get(island, "terrain", x, y)]
+          if t.is_sky or t.built or sub.feature_covering(island, x, y) then
+            return false
+          end
+        end
+      end
+    end
+    return true
+  end
+  local prefab = require("world.prefab")
+  for i, id in ipairs(ids) do
+    local fd = defs.feature_by_id[id]
+    if fd and fd.latent then
+      local ci = math.max(1, (#cand * i) // (#ids + 1))
+      for j = ci, #cand do
+        local s = cand[j]
+        if fits(fd, s.x, s.y) then
+          if fd.footprint then
+            prefab.stamp_masked(island, defs, s.x, s.y,
+              fd.footprint.rows, fd.footprint.legend)
+            for ry, row in ipairs(fd.footprint.rows) do
+              local cx = row:find("@", 1, true)
+              if cx then
+                sub.set_feature(island, s.x + cx - 1, s.y + ry - 1,
+                  { def = fd, found = false, ox = s.x, oy = s.y })
+                break
+              end
+            end
+          else
+            sub.set_feature(island, s.x, s.y, { def = fd, found = false })
+          end
+          break
+        end
+      end
+    else
+      print("[sky-islands] debug: force_latent unknown/non-latent id " .. tostring(id))
+    end
+  end
 end
 
 function M.start_mission(offer)
   State.mission = offer
-  State.run = { discovered = {} }
-  local island = islandgen.generate(offer.seed, State.defs, offer.danger)
-  enter_island(island, "isle:" .. offer.seed)
+  State.run = { discovered = {}, notable = {} }
+  local island, id
+  if offer.authored then
+    -- authored levels are exact: no force_latent stamping on top
+    island = require("world.authored").build(State.defs,
+      State.defs.island_by_id[offer.authored])
+    id = "isle:authored:" .. offer.authored
+  else
+    island = islandgen.generate(offer.seed, State.defs, offer.danger)
+    debug_force_latent(island)
+    id = "isle:" .. offer.seed
+  end
+  enter_island(island, id)
   flavor.emit("game_start", { island = island.name })
   State.stack:switch(require("game.states.play"))
 end
@@ -120,9 +267,11 @@ function M.sleep()
   local eco = State.defs.economy
   local turns = eco.sleep.turns
   State.clock.turn = State.clock.turn + turns
-  State.player.hunger = math.min(eco.hunger.collapse - 1,
-    State.player.hunger + eco.hunger.per_turn * turns)
-  State.player.hunger_state = require("sim.needs").state(State.player.hunger, eco)
+  if not (State.debug and State.debug.no_hunger) then
+    State.player.hunger = math.min(eco.hunger.collapse - 1,
+      State.player.hunger + eco.hunger.per_turn * turns)
+    State.player.hunger_state = require("sim.needs").state(State.player.hunger, eco)
+  end
   State.player.hp = math.min(eco.player.max_hp,
     State.player.hp + turns // eco.sleep.heal_every)
   flavor.emit("sleep", {})

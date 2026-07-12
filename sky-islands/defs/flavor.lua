@@ -263,6 +263,33 @@ M.events = {
       "You wait. Somewhere below, clouds are doing the same.",
     },
   },
+  -- latent features (SI-0003)
+  latent_sighted = {
+    color = P.MAGENTA + 5,
+    templates = {
+      "You note the {feature} for the report. The company pays for knowing.",
+      "A {feature} - that's a line item. You mark the bearing.",
+    },
+  },
+  assay_hint = {
+    color = P.UI_DIM,
+    templates = {
+      "A {feature}, unconfirmed. [Space] to do the survey work properly.",
+    },
+  },
+  assay_done = {
+    color = P.MAGENTA + 5,
+    templates = {
+      "You work the site over. Confirmed: {feature}. The report thickens.",
+      "Slow, careful, by the book - and the book says {feature}. Logged.",
+    },
+  },
+  assay_already = {
+    color = P.GRAY + 6,
+    templates = {
+      "Already confirmed and logged. The {feature} isn't going anywhere.",
+    },
+  },
   -- market events (defs/econ_events.lua): {line} is the event's own log
   -- text, so the def stays the single place its words live
   market_news = {

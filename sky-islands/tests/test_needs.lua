@@ -55,6 +55,16 @@ return {
     t.eq(#lines, 1, "staying in a state doesn't repeat the warning")
   end,
 
+  debug_no_hunger_freezes_the_clock = function(t)
+    init_flavor()
+    local S = fake_state(699) -- one tick from collapse
+    S.debug = { no_hunger = true }
+    t.eq(needs.tick(S), false, "no collapse with the clock frozen")
+    t.eq(S.player.hunger, 699, "hunger unchanged")
+    S.debug = nil
+    t.eq(needs.tick(S), true, "flag off: the clock resumes and collapses")
+  end,
+
   regen_slow_and_gated_on_starving = function(t)
     init_flavor()
     local S = fake_state(0)

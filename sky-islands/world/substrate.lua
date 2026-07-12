@@ -43,6 +43,27 @@ function M.feature_at(island, x, y)
   return island.features[y * island.w + x]
 end
 
+-- The footprint feature whose MASK covers (x, y), if any (SI-0023).
+-- A footprint feature keeps one entry at its representative tile plus
+-- an origin (f.ox, f.oy); membership is origin + offset checked against
+-- the def's mask rows — no per-tile entries. Placement forbids overlap,
+-- so at most one feature covers a tile.
+function M.feature_covering(island, x, y)
+  local direct = M.feature_at(island, x, y)
+  if direct then return direct end
+  for _, f in pairs(island.features) do
+    local fp = f.def.footprint
+    if fp and f.ox then
+      local rx, ry = x - f.ox + 1, y - f.oy + 1
+      local row = fp.rows[ry]
+      if row and rx >= 1 and rx <= #row and row:sub(rx, rx) ~= " " then
+        return f
+      end
+    end
+  end
+  return nil
+end
+
 function M.set_feature(island, x, y, f)
   island.features[y * island.w + x] = f
 end

@@ -38,6 +38,7 @@ function M.take(S, verb, arg)
   if ev.kind == "move" or ev.kind == "door" then
     fov.update(S.island, S.defs, S.player.x, S.player.y,
       S.defs.economy.island.fov_radius)
+    require("sim.discovery").scan_sight(S)
     post_sight_hooks(S)
   end
   return nil

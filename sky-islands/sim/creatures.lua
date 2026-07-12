@@ -78,7 +78,11 @@ local function creature_attack(S, c, r)
   local def = c.def
   if r:chance(def.acc) then
     local dmg = r:int(def.damage[1], def.damage[2])
-    S.player.hp = S.player.hp - dmg
+    -- debug invulnerability skips the wound but NOT the rolls: creature
+    -- behavior stays identical with or without the flag
+    if not (S.debug and S.debug.invulnerable) then
+      S.player.hp = S.player.hp - dmg
+    end
     flavor.emit("creature_hit", { name = def.name, dmg = dmg })
   else
     flavor.emit("creature_miss", { name = def.name })
@@ -93,7 +97,10 @@ function M.act(S, c, r)
   local px, py = S.player.x, S.player.y
 
   local radius = def.aggro_radius
-  if radius == 0 and c.state == "hunt" then
+  if S.debug and S.debug.docile_creatures then
+    c.state = "wander" -- debug: nothing hunts, nothing holds a grudge
+    radius = 0
+  elseif radius == 0 and c.state == "hunt" then
     radius = 8 -- a hurt docile creature fights back with open eyes
   end
   local sees = radius > 0 and

@@ -26,6 +26,9 @@ for i, name in ipairs({ "UP", "DOWN", "LEFT", "RIGHT", "H", "J", "K", "L",
   input["KEY_" .. name] = i
 end
 
+-- hermetic: never load the dev's real debugflags.lua into tests
+package.preload["debugflags"] = function() return {} end
+
 require("main")
 
 local rng = require("util.rng")
@@ -248,8 +251,22 @@ return {
       State.stack:key("backspace")
     end
     SAVED = nil
-    State.stack:key("space") -- sleep = save
+    State.stack:key("space") -- bunk asks first
+    t.ok(State.stack:top() == require("game.states.confirm"),
+      "sleeping asks first")
+    State.stack:key("y")
+    local wipe = require("game.states.sleepwipe")
+    t.ok(State.stack:top() == wipe, "the night rolls in")
+    State.stack:update(0.2)
+    State.stack:draw(0.016) -- mid-wipe frame draws
+    t.eq(SAVED, nil, "no save until the screen is dark")
+    for _ = 1, 20 do State.stack:update(0.05) end -- full dark: night passes
+    State.stack:draw(0.016)
     t.ok(SAVED ~= nil, "sleeping saves")
+    t.ok(State.stack:top() == wipe, "the dark holds until you rise")
+    State.stack:key("space") -- rise
+    for _ = 1, 20 do State.stack:update(0.05) end
+    t.ok(State.stack:top() ~= wipe, "morning: the wipe cleared itself")
 
     -- save/restore round trip: mutate, restore, verify
     local save = require("game.save")
@@ -283,7 +300,11 @@ return {
     State.player.hp = 5
     State.player.hunger = 0
     SAVED = nil
-    State.stack:key("space") -- sleep
+    State.stack:key("space") -- bunk asks first
+    State.stack:key("y")
+    for _ = 1, 20 do State.stack:update(0.05) end -- full dark: night passes
+    State.stack:key("space") -- rise
+    for _ = 1, 20 do State.stack:update(0.05) end
     t.eq(State.player.hp, 5 + eco.sleep.turns // eco.sleep.heal_every,
       "bed rest heals 1 per " .. eco.sleep.heal_every .. " turns")
     t.eq(State.player.hunger, eco.sleep.turns, "sleeping costs hunger")
@@ -395,6 +416,83 @@ return {
     State.stack:key("space")     -- revisit
     t.ok(State.stack:top() ~= gossip, "gossip fires once per event, not per visit")
     State.stack:key("backspace")
+  end,
+
+  assay_via_space_on_the_tile = function(t)
+    _config()
+    _init()
+    SAVED = nil
+    require("game.run").new_game(31337)
+    -- manufacture a mission context on the hub: a run + an ore deposit
+    -- on the tile under the player
+    State.run = { discovered = {}, notable = {} }
+    local px, py = State.player.x, State.player.y
+    sub.set_feature(State.island, px, py,
+      { def = State.defs.feature_by_id["ore_deposit"], found = false })
+    local turn0 = State.clock.turn
+    State.stack:key("space")
+    t.eq(#State.run.notable, 1, "space on the deposit assays it")
+    t.eq(State.run.notable[1].def.id, "ore_deposit")
+    t.eq(State.clock.turn, turn0 + 1, "assay cost a turn")
+    State.stack:key("space")
+    t.eq(#State.run.notable, 1, "second space: already confirmed, no dupe")
+    t.eq(State.clock.turn, turn0 + 1, "and no extra turn")
+    sub.set_feature(State.island, px, py, nil)
+  end,
+
+  debug_flags_apply_at_new_game = function(t)
+    _config()
+    _init()
+    SAVED = nil
+    t.eq(State.debug, nil, "no debugflags.lua in tests: State.debug is nil")
+    -- simulate a flags file (set after _init, read by new_game)
+    State.debug = {
+      master_seed = 999, credits = 500, debt = 100,
+      force_event = { id = "patrol_repairs", cycles = 2 },
+      reveal_fog = true,
+    }
+    require("game.run").new_game(12345)
+    t.eq(State.master, 999, "master_seed overrides the intro's seed")
+    t.eq(State.persist.credits, 500, "credits override")
+    t.eq(State.persist.debt, 100, "debt override")
+    t.eq(State.market.event.id, "patrol_repairs", "event forced live")
+    t.eq(State.market.event.cycles_left, 2, "forced duration honored")
+    local unseen = 0
+    for i = 1, State.island.w * State.island.h do
+      local sky = State.defs.terrain[State.island.terrain[i]].is_sky
+      if State.island.fog[i] == 0 and not sky then unseen = unseen + 1 end
+    end
+    t.eq(unseen, 0, "reveal_fog: no unseen land tiles")
+
+    -- unknown event ids are ignored, not fatal
+    State.debug = { force_event = { id = "no_such_event" } }
+    require("game.run").new_game(777)
+    t.eq(State.market.event, nil, "unknown force_event id is dropped")
+
+    -- force_latent stamps every latent def onto a mission island
+    State.debug = { force_latent = true }
+    require("game.run").start_mission({ seed = 555, fee = 100,
+      danger = 1, reported = 1 })
+    local have = {}
+    for _, f in pairs(State.island.features) do
+      if f.def.latent then have[f.def.id] = true end
+    end
+    for _, fd in ipairs(State.defs.feature_list) do
+      if fd.latent then
+        t.ok(have[fd.id], "forced onto the island: " .. fd.id)
+      end
+    end
+
+    -- force_level: new games start ON the authored island directly...
+    State.debug = { force_level = "proving_grounds" }
+    require("game.run").new_game(888)
+    t.eq(State.island.name, "Proving Grounds", "spawned straight onto it")
+    t.ok(State.island.extract_idx, "with a beacon to leave by")
+    t.ok(State.world.islands.hub ~= nil, "the hub still exists underneath")
+    -- ...and it stays pinned to the board for re-entry
+    local offers = require("game.run").offers()
+    t.eq(offers[#offers].authored, "proving_grounds", "still on the board")
+    State.debug = nil
   end,
 
   determinism_same_seed_same_offers = function(t)

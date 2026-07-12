@@ -80,6 +80,12 @@ return {
       { docile = { 2, 3 }, aggressive = { 2, 3 }, roaming_warden = false },
       { docile = { 1, 2 }, aggressive = { 3, 5 }, roaming_warden = true },
     },
+    -- latent features per tier: hostile islands have better bones
+    latent = {
+      { min = 0, max = 1 },
+      { min = 1, max = 1 },
+      { min = 1, max = 2 },
+    },
   },
 
   island = {

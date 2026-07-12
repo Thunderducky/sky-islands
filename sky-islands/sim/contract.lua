@@ -14,10 +14,17 @@ function M.settle(S)
   for _, f in ipairs(run.discovered) do
     bounty = bounty + (f.def.bounty or 0)
   end
+  -- latent features: separate list AND separate money, so the report
+  -- can itemize honestly (caches_found and cache bounties stay caches)
+  local notable, notable_bounty = {}, 0
+  for _, f in ipairs(run.notable or {}) do
+    notable_bounty = notable_bounty + (f.def.bounty or 0)
+    notable[#notable + 1] = f.def.short or f.def.name
+  end
 
   local coverage = island.land_count > 0
       and island.seen_count / island.land_count or 0
-  local payout = S.mission.fee + bounty
+  local payout = S.mission.fee + bounty + notable_bounty
   local bonus_mult = 0
   for _, tier in ipairs(eco.coverage_bonus) do
     if coverage >= tier.at then
@@ -40,6 +47,8 @@ function M.settle(S)
   return {
     caches_found = #run.discovered,
     caches_total = island.cache_count,
+    notable = notable,
+    notable_bounty = notable_bounty,
     bounty = bounty,
     coverage = coverage,
     fee = S.mission.fee,

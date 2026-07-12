@@ -4,6 +4,7 @@
 local sub = require("world.substrate")
 local rng = require("util.rng")
 local G = require("util.grid")
+local prefab = require("world.prefab")
 
 local M = {}
 
@@ -204,6 +205,94 @@ function M.generate(seed, defs, danger)
         end
       end
 
+      -- latent features (SI-0003/0023): placed BEFORE the beacon and
+      -- caches, so footprint walls exist when the flood fill routes
+      -- reachability. Rep-tile reachability is validated after the
+      -- flood; a walled-off rep rejects the island attempt.
+      local latent_reps = {}
+      do
+        local lt = defs.economy.danger.latent[danger]
+        local want = r:int(lt.min, lt.max)
+        if want > 0 then
+          local pool, total = {}, 0
+          for _, fd in ipairs(defs.feature_list) do
+            if fd.latent then
+              pool[#pool + 1] = fd
+              total = total + (fd.weight or 1)
+            end
+          end
+          local cand = {}
+          for idx = 0, w * h - 1 do
+            if mask[idx] then cand[#cand + 1] = idx end
+          end
+          r:shuffle(cand)
+
+          local function cell_free(x, y, need_walkable)
+            if x < 0 or y < 0 or x >= w or y >= h then return false end
+            if not mask[y * w + x] then return false end
+            local t = defs.terrain[sub.get(island, "terrain", x, y)]
+            if t.built or t.is_sky then return false end
+            if need_walkable and (not t.walkable or t.door) then return false end
+            if sub.feature_covering(island, x, y) then return false end
+            return true
+          end
+          local function fits(fd, ox, oy)
+            local rows = fd.footprint and fd.footprint.rows or { "@" }
+            for ry, row in ipairs(rows) do
+              for rx = 1, #row do
+                if row:sub(rx, rx) ~= " " then
+                  -- single-tile latents keep the old walkable rule; a
+                  -- footprint brings its own terrain and only needs
+                  -- unclaimed natural ground
+                  if not cell_free(ox + rx - 1, oy + ry - 1,
+                        fd.footprint == nil) then
+                    return false
+                  end
+                end
+              end
+            end
+            return true
+          end
+          local function place(fd, ox, oy)
+            if fd.footprint then
+              prefab.stamp_masked(island, defs, ox, oy,
+                fd.footprint.rows, fd.footprint.legend)
+              for ry, row in ipairs(fd.footprint.rows) do
+                local cx = row:find("@", 1, true)
+                if cx then
+                  local x, y = ox + cx - 1, oy + ry - 1
+                  sub.set_feature(island, x, y,
+                    { def = fd, found = false, ox = ox, oy = oy })
+                  return y * w + x
+                end
+              end
+            end
+            sub.set_feature(island, ox, oy, { def = fd, found = false })
+            return oy * w + ox
+          end
+
+          local placed, ci = 0, 1
+          while placed < want and ci <= #cand and total > 0 do
+            local roll = r:int(1, total)
+            local chosen
+            for _, fd in ipairs(pool) do
+              roll = roll - (fd.weight or 1)
+              if roll <= 0 then chosen = fd break end
+            end
+            while ci <= #cand do
+              local idx = cand[ci]
+              ci = ci + 1
+              local ox, oy = G.xy(idx, w)
+              if fits(chosen, ox, oy) then
+                latent_reps[#latent_reps + 1] = place(chosen, ox, oy)
+                placed = placed + 1
+                break
+              end
+            end
+          end
+        end
+      end
+
       -- land tiles near the rim (within 2 of sky) for beacon + outdoor
       -- caches. Indexed iteration, not pairs(): rim order feeds r:pick.
       local rim = {}
@@ -224,7 +313,8 @@ function M.generate(seed, defs, danger)
       -- still land in vegetation — a hidden cache is a feature.
       local open_rim = {}
       for _, s in ipairs(rim) do
-        if not defs.terrain[sub.get(island, "terrain", s.x, s.y)].opaque then
+        if not defs.terrain[sub.get(island, "terrain", s.x, s.y)].opaque
+            and not sub.feature_covering(island, s.x, s.y) then
           open_rim[#open_rim + 1] = s
         end
       end
@@ -264,7 +354,15 @@ function M.generate(seed, defs, danger)
         end
         island.cache_count = caches
 
-        if caches >= eco.caches_min then
+        -- validity now also requires every latent rep tile reachable: a
+        -- footprint that walled off its own doorway (or got orphaned
+        -- behind buildings) rejects this attempt
+        local reps_ok = true
+        for _, ridx in ipairs(latent_reps) do
+          if not reach[ridx] then reps_ok = false break end
+        end
+
+        if caches >= eco.caches_min and reps_ok then
           M.spawn_creatures(r, island, defs, danger)
           return island -- valid: everything placed was flood-verified reachable
         end

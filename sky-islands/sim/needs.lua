@@ -29,22 +29,26 @@ end
 -- touch game flow.
 function M.tick(S)
   local eco = S.defs.economy
-  S.player.hunger = (S.player.hunger or 0) + eco.hunger.per_turn
-  local state = M.state(S.player.hunger, eco)
-  local prev = S.player.hunger_state or "full"
-  if ORDER[state] > ORDER[prev] then
-    flavor.emit("hunger_" .. state, {})
+  local clock_off = S.debug and S.debug.no_hunger -- debug: frozen clock
+  if not clock_off then
+    S.player.hunger = (S.player.hunger or 0) + eco.hunger.per_turn
+    local state = M.state(S.player.hunger, eco)
+    local prev = S.player.hunger_state or "full"
+    if ORDER[state] > ORDER[prev] then
+      flavor.emit("hunger_" .. state, {})
+    end
+    S.player.hunger_state = state
   end
-  S.player.hunger_state = state
 
   -- passive regen rides the same tick: slow, and starving stops it
   local pl = eco.player
-  if S.player.hp and S.player.hp < pl.max_hp and state ~= "starving"
+  if S.player.hp and S.player.hp < pl.max_hp
+      and (S.player.hunger_state or "full") ~= "starving"
       and S.clock.turn % eco.regen_turns == 0 then
     S.player.hp = S.player.hp + 1
   end
 
-  return S.player.hunger >= eco.hunger.collapse
+  return not clock_off and S.player.hunger >= eco.hunger.collapse
 end
 
 -- Use one unit of inv[idx]: nutrition eats, heal bandages. Returns true

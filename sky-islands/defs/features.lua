@@ -25,6 +25,92 @@ M.features = {
     color = P.MAGENTA + 4, take_only = true,
     desc = "A bush heavy with skyberries. Free food - don't tell the store." },
 
+  -- latent features (SI-0003): worth nothing to USE yet — worth money to
+  -- REPORT. discover = "sight" (seeing is surveying) or "assay" (stand on
+  -- it and do the work: Space). Spawn counts per danger tier live in
+  -- economy.danger.latent; weight = relative pick chance.
+  --
+  -- footprint (SI-0023): the feature occupies a SPLAT of terrain, not one
+  -- tile. rows+legend like any prefab, but spaces = outside the mask
+  -- (untouched ground — shapes can be rings and crosses). Exactly one
+  -- "@" cell: the representative tile that carries the feature entry and
+  -- the bounty. Sight discovery fires when ANY mask tile is seen; assay
+  -- and Space work from any mask tile.
+  { id = "old_factory", short = "factory", name = "old factory", glyph = "&",
+    color = P.GRAY + 7, latent = true, discover = "sight", reportable = true,
+    bounty = 35, weight = 2,
+    footprint = {
+      rows = {
+        "######",
+        "#;;;;#",
+        "#;@;;-",
+        "######",
+      },
+      legend = {
+        ["#"] = { t = "wall_stone" },
+        [";"] = { t = "rubble" },
+        ["-"] = { t = "rubble" }, -- the gap where the doors were
+        ["@"] = { t = "rubble", rep = true },
+      },
+    },
+    desc = "A pre-Fracture works, seized up mid-shift. The company will want to know." },
+
+  { id = "ore_deposit", short = "ore", name = "ore deposit", glyph = "^",
+    color = P.RED + 4, latent = true, discover = "assay", reportable = true,
+    bounty = 40, weight = 3,
+    footprint = {
+      rows = {
+        " ; ",
+        ";@;",
+        " ; ",
+      },
+      legend = {
+        [";"] = { t = "rubble" },
+        ["@"] = { t = "rubble", rep = true },
+      },
+    },
+    desc = "Rust-streaked stone. Could be a seam, could be a stain - the soil will say. [Space] assay." },
+
+  { id = "magical_inscription", short = "inscription", name = "magical inscription", glyph = "?",
+    color = P.MAGENTA + 5, latent = true, discover = "assay", reportable = true,
+    bounty = 45, weight = 1,
+    -- deliberately single-tile: one carved stone, easy to walk past
+    desc = "Carved lines that hum like the ward-stones do. Reading it properly takes standing still. [Space] study." },
+
+  { id = "freshwater_spring", short = "spring", name = "freshwater spring", glyph = "~",
+    color = P.BLUE + 5, latent = true, discover = "sight", reportable = true,
+    bounty = 20, weight = 3,
+    footprint = {
+      rows = {
+        "~@",
+        "~~",
+      },
+      legend = {
+        ["~"] = { t = "water_shallow" },
+        ["@"] = { t = "water_shallow", rep = true },
+      },
+    },
+    desc = "Clean water, rising on its own. The one thing out here nobody has to refine." },
+
+  { id = "grand_ruin", short = "ruin", name = "grand pre-Fracture ruin", glyph = "M",
+    color = P.MAGENTA + 4, latent = true, discover = "sight", reportable = true,
+    bounty = 50, weight = 1,
+    footprint = {
+      rows = {
+        " ##### ",
+        " #;;;# ",
+        " ;;@;# ",
+        " #;;;# ",
+        " ##;## ",
+      },
+      legend = {
+        ["#"] = { t = "wall_stone" },
+        [";"] = { t = "rubble" },
+        ["@"] = { t = "rubble", rep = true },
+      },
+    },
+    desc = "Architecture from before the sky broke. Bigger inside than the company's whole ledger." },
+
   -- hub amenities (instances get their containers in world/hubgen.lua)
   { id = "bunk", name = "your bunk", glyph = "8", color = P.TAN + 5,
     desc = "A company bunk, rented weekly. The lockbox under it is yours. [Space] sleep, [g] stash." },

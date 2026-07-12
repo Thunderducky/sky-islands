@@ -103,6 +103,26 @@ return {
     t.ok(S.player.hp < 20, "adjacent + hostile = damage")
   end,
 
+  debug_invulnerable_skips_the_wound = function(t)
+    local isl = arena()
+    local c = put(isl, "thorn_hog", 5, 4)
+    local S = fake_S(isl, 5, 5)
+    S.debug = { invulnerable = true }
+    creatures.act(S, c, SURE)
+    t.eq(S.player.hp, 20, "sure hit, no wound")
+  end,
+
+  debug_docile_creatures_never_hunt = function(t)
+    local isl = arena()
+    local c = put(isl, "thorn_hog", 5, 4)
+    c.state = "hunt" -- even an angry one calms down
+    local S = fake_S(isl, 5, 5)
+    S.debug = { docile_creatures = true }
+    creatures.act(S, c, SURE)
+    t.eq(S.player.hp, 20, "adjacent hostile never swings")
+    t.eq(c.state, "wander", "grudge dropped")
+  end,
+
   kill_drops_and_removes = function(t)
     local isl = arena()
     local c = put(isl, "dust_hen", 5, 4)

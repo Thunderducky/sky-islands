@@ -22,6 +22,13 @@ local function enter_tile(S, x, y)
     end
   elseif f and f.def.id == "extract_beacon" then
     flavor.emit("submit_hint", {})
+  else
+    -- footprint membership counts as standing on the feature
+    local lf = sub.feature_covering(island, x, y)
+    if lf and lf.def.latent and lf.def.discover == "assay"
+        and not lf.found then
+      flavor.emit("assay_hint", { feature = lf.def.name })
+    end
   end
 end
 
@@ -81,6 +88,11 @@ M.verbs = {
   wait = function(S)
     flavor.emit("wait", {})
     return { kind = "wait" }
+  end,
+
+  assay = function(S)
+    if require("sim.discovery").assay(S) then return { kind = "assay" } end
+    return nil
   end,
 
   submit = function(S)

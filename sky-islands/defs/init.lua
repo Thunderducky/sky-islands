@@ -55,6 +55,33 @@ function M.load()
     if f.loot_table then
       assert(M.loot_tables[f.loot_table], f.id .. ": unknown loot_table " .. f.loot_table)
     end
+    if f.latent then
+      assert(f.discover == "sight" or f.discover == "assay",
+        f.id .. ": latent feature needs discover = sight|assay")
+      assert(f.bounty, f.id .. ": latent feature needs a bounty")
+    end
+    if f.footprint then
+      local reps = 0
+      for _, row in ipairs(f.footprint.rows) do
+        for rx = 1, #row do
+          local ch = row:sub(rx, rx)
+          if ch ~= " " then
+            local cell = f.footprint.legend[ch]
+            assert(cell, f.id .. (": footprint char %q not in legend"):format(ch))
+            if ch == "@" then
+              assert(cell.rep, f.id .. ": footprint @ cell must set rep = true")
+              reps = reps + 1
+            end
+          end
+        end
+      end
+      assert(reps == 1, f.id .. ": footprint needs exactly one @ (has " ..
+        reps .. ")")
+      for ch, cell in pairs(f.footprint.legend) do
+        assert(M.tid[cell.t], f.id .. ": footprint legend " .. ch ..
+          ": unknown terrain " .. tostring(cell.t))
+      end
+    end
   end
 
   M.creature_list = require("defs.creatures")
@@ -96,6 +123,42 @@ function M.load()
   end
   for _, s in ipairs(M.economy.store.grab_bag) do
     assert(M.item_by_id[s.item], "store grab_bag: unknown item " .. s.item)
+  end
+
+  -- authored islands: strict at load, like everything else
+  M.island_list = require("defs.islands")
+  M.island_by_id = index_by_id(M.island_list)
+  for _, isl in ipairs(M.island_list) do
+    local w = #isl.map[1]
+    local beacons = 0
+    for ry, row in ipairs(isl.map) do
+      assert(#row == w, isl.id .. ": row " .. ry .. " width " .. #row ..
+        " ~= " .. w)
+      for rx = 1, #row do
+        local cell = isl.legend[row:sub(rx, rx)]
+        assert(cell, isl.id .. (": char %q at row %d col %d not in legend")
+          :format(row:sub(rx, rx), ry, rx))
+        if cell.f == "extract_beacon" then beacons = beacons + 1 end
+      end
+    end
+    assert(beacons == 1, isl.id .. ": needs exactly one extract_beacon, has "
+      .. beacons)
+    for ch, cell in pairs(isl.legend) do
+      assert(M.tid[cell.t], isl.id .. ": legend " .. ch ..
+        ": unknown terrain " .. tostring(cell.t))
+      if cell.f then
+        assert(M.feature_by_id[cell.f], isl.id .. ": legend " .. ch ..
+          ": unknown feature " .. tostring(cell.f))
+      end
+      for _, s in ipairs(cell.loot or {}) do
+        assert(M.item_by_id[s.id], isl.id .. ": legend " .. ch ..
+          ": unknown loot item " .. tostring(s.id))
+      end
+    end
+    for _, c in ipairs(isl.creatures or {}) do
+      assert(M.creature_by_id[c.def], isl.id .. ": unknown creature " ..
+        tostring(c.def))
+    end
   end
   return M
 end

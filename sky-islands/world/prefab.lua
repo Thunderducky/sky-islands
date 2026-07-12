@@ -22,4 +22,25 @@ function M.stamp(island, defs, ox, oy, rows, legend)
   end
 end
 
+-- Masked stamp: space chars are OUTSIDE the mask and leave the tile
+-- untouched — footprints can be rings, Ls, crosses, not just rectangles
+-- (SI-0023). Same strictness for every non-space char.
+function M.stamp_masked(island, defs, ox, oy, rows, legend)
+  for ry, row in ipairs(rows) do
+    for rx = 1, #row do
+      local ch = row:sub(rx, rx)
+      if ch ~= " " then
+        local cell = legend[ch]
+        assert(cell, ("prefab: char %q at row %d col %d not in legend")
+          :format(ch, ry, rx))
+        local x, y = ox + rx - 1, oy + ry - 1
+        sub.set(island, "terrain", x, y, defs.tid[cell.t])
+        if cell.f then
+          sub.set_feature(island, x, y, { def = defs.feature_by_id[cell.f] })
+        end
+      end
+    end
+  end
+end
+
 return M

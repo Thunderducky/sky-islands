@@ -29,11 +29,22 @@ function _init()
     tab = input.KEY_TAB, backspace = input.KEY_BACKSPACE,
   }
 
+  -- debugflags.lua (gitignored, optional): a plain table of local dev
+  -- flags. Absent in normal play; everything reading State.debug must
+  -- be nil-safe. See CLAUDE.md "Debug flags".
+  package.loaded["debugflags"] = nil -- re-read on every reset, not once per VM
+  local dbg_ok, dbg = pcall(require, "debugflags")
+  if not (dbg_ok and type(dbg) == "table") then dbg = nil end
+  if dbg and next(dbg) == nil then dbg = nil end -- all-commented file = off
+
   State = {
     defs = defs.load(),
     stack = statestack.new(),
+    debug = dbg,
   }
+  if dbg then print("[sky-islands] DEBUG FLAGS ACTIVE - not a real playtest") end
   State.stack:push(require("game.states.titlescreen"))
+  if dbg and dbg.skip_title then State.stack:key("space") end
 end
 
 function _update(dt)

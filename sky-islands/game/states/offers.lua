@@ -43,11 +43,13 @@ function S.draw(self)
     if i == self.cur then
       gfx.rect_fill(px - 2, L.py(cy), pw + 4, L.CELL_H, P.GRAY + 4)
     end
-    L.text(x, cy, string.format("Isle-%03d", offer.seed % 1000),
-      i == self.cur and P.WHITE or P.UI_TEXT)
+    local label = offer.authored and (offer.name or offer.authored):sub(1, 9)
+        or string.format("Isle-%03d", offer.seed % 1000)
+    L.text(x, cy, label, i == self.cur and P.WHITE or P.UI_TEXT)
     local d = DANGER[offer.reported]
     L.text(x + 10, cy, d[1]:upper(), d[2])
-    L.text(x + 20, cy, "uncharted isle", P.UI_DIM)
+    L.text(x + 20, cy, offer.authored and "[debug] authored" or "uncharted isle",
+      offer.authored and P.MAGENTA + 5 or P.UI_DIM)
     L.text(x + 38, cy, string.format("%4dc", offer.fee), P.GOLD + 5)
   end
 
