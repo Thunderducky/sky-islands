@@ -6,6 +6,7 @@ local P = require("palette")
 local flavor = require("flavor")
 
 local S = {}
+S.opaque = true -- full-screen letter; nothing beneath should draw
 
 function S.enter(self, opts)
   self.opts = opts or {}

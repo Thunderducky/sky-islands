@@ -48,11 +48,15 @@ M.loot_tables = {
     { item = "bandage", min = 1, max = 2, chance = 0.3 },
     { item = "ledger_page", min = 1, max = 1, chance = 0.3 },
     { item = "tools_surveyor", min = 1, max = 1, chance = 0.15 },
+    { item = "insulated_wiring", min = 1, max = 3, chance = 0.4 },
+    { item = "sealant_tin", min = 1, max = 2, chance = 0.3 },
+    { item = "hull_plate", min = 1, max = 2, chance = 0.25 },
   },
   cache_ruin = {
     { item = "ward_shard", min = 1, max = 2, chance = 0.8 },
     { item = "salvage_cable", min = 1, max = 3, chance = 0.5 },
     { item = "ledger_page", min = 1, max = 2, chance = 0.4 },
+    { item = "hull_plate", min = 1, max = 3, chance = 0.4 },
   },
 }
 

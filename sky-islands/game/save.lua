@@ -106,10 +106,20 @@ function M.snapshot()
   end
   local tid = {}
   for id, int in pairs(State.defs.tid) do tid[id] = int end
+  local mkt = State.market or { cooldowns = {} }
+  local cooldowns = {}
+  for id, n in pairs(mkt.cooldowns) do cooldowns[id] = n end
   return {
     version = 1,
     master = State.master,
     cycle = State.cycle,
+    market = {
+      event = mkt.event and { id = mkt.event.id,
+        cycles_left = mkt.event.cycles_left,
+        gossip_seen = mkt.event.gossip_seen or false } or nil,
+      last_event = mkt.last_event,
+      cooldowns = cooldowns,
+    },
     persist = { debt = State.persist.debt, credits = State.persist.credits },
     skiff = { hold = copy_stacks(State.skiff.hold) },
     clock = { turn = State.clock.turn },
@@ -133,6 +143,18 @@ function M.restore(snap)
 
   State.master = snap.master
   State.cycle = snap.cycle
+  -- market state: older saves lack it -> quiet market (rule: new fields
+  -- default on load). An event whose def no longer exists is dropped.
+  local mk = snap.market or {}
+  State.market = { event = nil, last_event = mk.last_event, cooldowns = {} }
+  for id, n in pairs(mk.cooldowns or {}) do
+    if defs.econ_event_by_id[id] then State.market.cooldowns[id] = n end
+  end
+  if mk.event and defs.econ_event_by_id[mk.event.id] then
+    State.market.event = { id = mk.event.id,
+      cycles_left = mk.event.cycles_left,
+      gossip_seen = mk.event.gossip_seen or false }
+  end
   State.persist = { debt = snap.persist.debt, credits = snap.persist.credits }
   State.skiff = { hold = copy_stacks(snap.skiff.hold) }
   State.clock = { turn = snap.clock.turn }

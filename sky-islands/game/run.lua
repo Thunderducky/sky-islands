@@ -32,23 +32,25 @@ local function enter_island(island, id, x, y)
     State.defs.economy.island.fov_radius)
 end
 
+local market = require("sim.market")
+
 local function restock_trader()
   local hub = State.world.islands.hub
   for _, f in pairs(hub.features) do
     if f.def.id == "trader" and f.stock then
-      local r = rng.derive(State.master, "market:" .. State.cycle)
-      f.stock = {}
-      local stock = f.stock
-      stock[#stock + 1] = { id = "ration_pack", n = r:int(4, 8) }
-      stock[#stock + 1] = { id = "bandage", n = r:int(2, 4) }
-      stock[#stock + 1] = { id = "preserves_jar", n = r:int(2, 5) }
-      if r:chance(0.5) then
-        stock[#stock + 1] = { id = "salvage_cable", n = r:int(1, 3) }
-      end
-      if r:chance(0.3) then
-        stock[#stock + 1] = { id = "tools_surveyor", n = 1 }
-      end
+      f.stock = market.build_stock(State)
     end
+  end
+end
+
+-- One market tick per cycle increment: advance events, then narrate.
+local function turn_market()
+  local news = market.advance(State)
+  if news.ended then
+    flavor.emit("market_settled", { name = news.ended.name })
+  end
+  if news.started then
+    flavor.emit("market_news", { line = news.started.log })
   end
 end
 
@@ -62,6 +64,7 @@ function M.new_game(master_seed)
   State.clock = { turn = 0 }
   State.world = { islands = {}, current = nil }
   State.mission = nil
+  State.market = market.init()
   init_session()
   enter_island(hubgen.build(State.defs), "hub")
   restock_trader()
@@ -138,6 +141,7 @@ function M.rescue()
   State.mission = nil
   State.run = nil
   State.cycle = State.cycle + 1
+  turn_market()
   State.persist.debt = State.persist.debt + fee
   State.player.hunger = 0
   State.player.hunger_state = "full"
@@ -163,6 +167,7 @@ function M.return_to_hub()
   State.mission = nil
   State.run = nil
   State.cycle = State.cycle + 1
+  turn_market()
   local hub = State.world.islands.hub
   enter_island(hub, "hub")
   restock_trader()

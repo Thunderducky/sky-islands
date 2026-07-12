@@ -2,6 +2,7 @@ local L = require("ui.layout")
 local P = require("palette")
 
 local S = {}
+S.opaque = true -- full-screen letter; nothing beneath should draw
 
 function S.enter(self, result)
   self.r = result

@@ -67,6 +67,36 @@ function M.load()
   end
 
   M.economy = require("defs.economy")
+
+  -- market events: same fail-at-load discipline
+  M.econ_event_list = require("defs.econ_events")
+  M.econ_event_by_id = index_by_id(M.econ_event_list)
+  for _, e in ipairs(M.econ_event_list) do
+    assert(type(e.gossip) == "table" and #e.gossip > 0, e.id .. ": needs gossip lines")
+    assert(e.log, e.id .. ": needs a log line")
+    assert(e.duration and e.duration[1] and e.duration[2]
+      and e.duration[1] <= e.duration[2], e.id .. ": bad duration")
+    for _, eff in ipairs(e.effects or {}) do
+      assert(eff.match and (eff.match.id or eff.match.has),
+        e.id .. ": effect needs match.id or match.has")
+      if eff.match.id then
+        assert(M.item_by_id[eff.match.id], e.id .. ": unknown item " .. eff.match.id)
+      end
+      if eff.demand then
+        assert(M.economy.demand_levels[eff.demand],
+          e.id .. ": unknown demand level " .. tostring(eff.demand))
+      end
+    end
+    for _, a in ipairs(e.add_stock or {}) do
+      assert(M.item_by_id[a.item], e.id .. ": unknown add_stock item " .. a.item)
+    end
+  end
+  for _, s in ipairs(M.economy.store.staples) do
+    assert(M.item_by_id[s.item], "store staple: unknown item " .. s.item)
+  end
+  for _, s in ipairs(M.economy.store.grab_bag) do
+    assert(M.item_by_id[s.item], "store grab_bag: unknown item " .. s.item)
+  end
   return M
 end
 

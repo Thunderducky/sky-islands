@@ -7,7 +7,7 @@ return {
   skiff_slots = 20,
   ground_slots = 99, -- the ground is generous, not infinite
   stash_slots = 12,  -- lockbox under the bunk
-  trader_slots = 14,
+  trader_slots = 60, -- deep reserves: the store absorbs what the sky coughs up
 
   fee_min = 100, fee_max = 160, -- mission offers roll in this range
   debt_start = 2000,
@@ -16,6 +16,42 @@ return {
 
   buy_mult = 1.5,  -- store sells at value x this
   sell_mult = 0.6, -- store buys at value x this
+
+  -- Market events (defs/econ_events.lua) shift prices by DEMAND LEVEL,
+  -- never raw multipliers — retuning the whole economy is this table.
+  -- pay scales what the store gives you; charge scales what it asks.
+  demand_levels = {
+    glut     = { pay = 0.5, charge = 0.8 },
+    low      = { pay = 0.8, charge = 0.9 },
+    high     = { pay = 1.4, charge = 1.3 },
+    critical = { pay = 1.9, charge = 1.6 },
+  },
+  econ_events = {
+    -- rolled per quiet cycle; the cycle an event ends is always quiet
+    -- (normal prices between stories are what make shortages legible)
+    start_chance = 0.5,
+  },
+
+  -- Store restock, rebuilt every cycle from (master, "market:<cycle>").
+  -- staples always appear; grab_bag entries are loot-table-shaped rolls.
+  store = {
+    staples = {
+      { item = "ration_pack", min = 4, max = 8 },
+      { item = "bandage", min = 2, max = 4 },
+      { item = "preserves_jar", min = 2, max = 5 },
+    },
+    grab_bag = {
+      { item = "salvage_cable", min = 1, max = 3, chance = 0.5 },
+      { item = "tools_surveyor", min = 1, max = 1, chance = 0.3 },
+      { item = "hull_plate", min = 1, max = 3, chance = 0.5 },
+      { item = "sealant_tin", min = 1, max = 3, chance = 0.5 },
+      { item = "insulated_wiring", min = 2, max = 5, chance = 0.5 },
+      { item = "medicinal_herbs", min = 1, max = 4, chance = 0.4 },
+      { item = "salvage_copper", min = 2, max = 6, chance = 0.4 },
+      { item = "game_meat", min = 1, max = 3, chance = 0.3 },
+      { item = "berries", min = 2, max = 6, chance = 0.3 },
+    },
+  },
 
   -- coverage -> bonus multiplier on the payout (thresholds, descending)
   coverage_bonus = {

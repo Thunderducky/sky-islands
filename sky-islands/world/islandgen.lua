@@ -195,8 +195,12 @@ function M.generate(seed, defs, danger)
       local forage_def = defs.feature_by_id["forage_berries"]
       for idx = 0, w * h - 1 do
         if island.terrain[idx + 1] == defs.tid["bush"] and r:chance(0.3) then
-          island.features[idx] = { def = forage_def,
-            loot = { { id = "berries", n = r:int(2, 5) } } }
+          -- a few bushes carry herbs instead: foraged medicine, the other
+          -- thing out here the company can't invoice
+          local loot = r:chance(0.25)
+              and { id = "medicinal_herbs", n = r:int(1, 3) }
+              or { id = "berries", n = r:int(2, 5) }
+          island.features[idx] = { def = forage_def, loot = { loot } }
         end
       end
 

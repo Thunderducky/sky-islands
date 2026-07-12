@@ -263,6 +263,19 @@ M.events = {
       "You wait. Somewhere below, clouds are doing the same.",
     },
   },
+  -- market events (defs/econ_events.lua): {line} is the event's own log
+  -- text, so the def stays the single place its words live
+  market_news = {
+    color = P.GOLD + 5,
+    templates = { "{line}" },
+  },
+  market_settled = {
+    color = P.GRAY + 7,
+    templates = {
+      "Counter talk moves on; prices settle back to company standard.",
+      "The {name} is old news. The ledger returns to its usual appetite.",
+    },
+  },
 }
 
 return M

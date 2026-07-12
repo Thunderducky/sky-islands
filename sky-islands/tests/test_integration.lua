@@ -108,6 +108,22 @@ return {
     State.stack:key("space")
     State.stack:key("backspace")
 
+    -- SI-0012: using an item keeps the cursor where it is
+    State.player.hunger = 600
+    State.player.hunger_state = needs.state(600, State.defs.economy)
+    table.insert(State.player.inv, { id = "berries", n = 2 })
+    State.stack:key("i")
+    local inv_state = State.stack:top()
+    local bottom = inv_state.menu:count()
+    for _ = 1, bottom do State.stack:key("j") end
+    t.eq(inv_state.menu.index, bottom, "cursor at the berries")
+    State.stack:key("space") -- eat one berry: the stack survives
+    t.eq(inv_state.menu.index, bottom, "cursor stays on the slot after use")
+    State.stack:key("space") -- eat the last berry: the slot vanishes
+    t.eq(inv_state.menu.index, math.max(1, inv_state.menu:count()),
+      "cursor clamps when the slot is gone (or rests in an empty pack)")
+    State.stack:key("backspace")
+
     -- forage a berry bush: one-way container, disappears when stripped
     local forage_idx
     for idx, f in pairs(State.island.features) do
@@ -115,6 +131,8 @@ return {
     end
     t.ok(forage_idx, "mission island has a berry bush")
     local fx, fy = G.xy(forage_idx, State.island.w)
+    -- bushes carry berries or medicinal herbs; assert on what's in THIS one
+    local forage_id = State.island.features[forage_idx].loot[1].id
     State.player.x, State.player.y = fx, fy
     State.stack:key("g")
     State.stack:key("tab")   -- try to stow INTO the bush
@@ -122,12 +140,12 @@ return {
     t.ok(sub.feature_at(State.island, fx, fy) ~= nil,
       "one-way: stowing into a bush does nothing")
     State.stack:key("tab")
-    State.stack:key("space") -- take the berries
-    local has_berries = false
+    State.stack:key("space") -- take the forage
+    local has_forage = false
     for _, s in ipairs(State.player.inv) do
-      if s.id == "berries" then has_berries = true end
+      if s.id == forage_id then has_forage = true end
     end
-    t.ok(has_berries, "berries in the pack")
+    t.ok(has_forage, "forage goods in the pack")
     t.eq(sub.feature_at(State.island, fx, fy), nil,
       "stripped bush loses its forage feature")
     State.stack:key("backspace")
@@ -173,9 +191,22 @@ return {
     State.player.hp = max_hp
     State.stack:draw(0.016)
 
-    -- submit -> report -> fly home
+    -- submit -> confirm -> report -> fly home
     local debt_before = State.persist.debt
+    local confirm = require("game.states.confirm")
     State.stack:key("space")
+    t.ok(State.stack:top() == confirm, "leaving asks first")
+    State.stack:draw(0.016)
+    State.stack:key("n") -- second thoughts
+    t.eq(State.persist.debt, debt_before, "declining leaves the contract open")
+    t.ok(not State.island.is_hub, "still on the island after declining")
+    State.stack:key("space")
+    State.stack:key("g") -- detour: check the hold before deciding
+    t.ok(State.stack:top() == require("game.states.transfer"),
+      "g from the confirm opens the skiff hold")
+    State.stack:key("backspace")
+    State.stack:key("space")
+    State.stack:key("y") -- commit
     State.stack:draw(0.016)
     t.ok(State.persist.debt < debt_before, "garnish chipped the debt")
     local hold_before_home = total_n(State.skiff.hold)
@@ -189,6 +220,11 @@ return {
     local tx, ty = feature_pos(State.island, "trader")
     State.player.x, State.player.y = tx, ty
     State.stack:key("space")
+    -- a market event may be news, in which case the keeper talks first
+    if State.stack:top() == require("game.states.gossip") then
+      State.stack:draw(0.016) -- exercise the gossip overlay draw
+      State.stack:key("space") -- wave him off
+    end
     State.stack:draw(0.016)
     local cash0 = State.persist.credits
     State.stack:key("g")     -- buy ONE (focus starts on stocked store)
@@ -338,6 +374,27 @@ return {
     State.stack:key("space")
 
     t.ok(draw_calls > 100, "drawing actually happened")
+  end,
+
+  market_gossip_shows_once = function(t)
+    _config()
+    _init()
+    SAVED = nil
+    require("game.run").new_game(4242)
+    -- force a fresh event so the flow is deterministic regardless of seed
+    State.market.event = { id = "patrol_repairs", cycles_left = 3,
+      gossip_seen = false }
+    local gossip = require("game.states.gossip")
+    local tx, ty = feature_pos(State.island, "trader")
+    State.player.x, State.player.y = tx, ty
+    State.stack:key("space")
+    t.ok(State.stack:top() == gossip, "keeper gossips while the event is news")
+    State.stack:draw(0.016)
+    State.stack:key("space")     -- wave him off -> transfer beneath
+    State.stack:key("backspace") -- close the store
+    State.stack:key("space")     -- revisit
+    t.ok(State.stack:top() ~= gossip, "gossip fires once per event, not per visit")
+    State.stack:key("backspace")
   end,
 
   determinism_same_seed_same_offers = function(t)

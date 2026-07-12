@@ -36,8 +36,10 @@ function S.key(self, k)
   elseif k == "space" then
     local sel = self.menu:selected()
     if sel and needs.use(State, sel.data.index) then
-      rebuild(self)
-      self.menu:move(0) -- clamp selection to the (maybe shorter) list
+      local keep = self.menu.index
+      rebuild(self) -- fresh menu starts at the top...
+      self.menu.index = keep
+      self.menu:move(0) -- ...so restore, clamping if the slot is gone
     end
   elseif k == "i" or k == "backspace" then State.stack:pop()
   end

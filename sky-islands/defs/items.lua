@@ -41,4 +41,21 @@ return {
   { id = "ledger_page", name = "torn ledger page", glyph = "?",
     color = P.GRAY + 8, value = 3, max_stack = 10,
     desc = "Company accounts in a cramped hand. Someone owed more than you." },
+
+  -- trade goods with market-event hooks (SI-0002)
+  { id = "hull_plate", name = "hull plate", glyph = "$",
+    color = P.GRAY + 8, value = 18, max_stack = 4,
+    desc = "Rolled skyship skin, company gauge. Dents ship free of charge." },
+
+  { id = "sealant_tin", name = "tin of sealant", glyph = "$",
+    color = P.TAN + 4, value = 12, max_stack = 6,
+    desc = "Pitch-black, airtight, eats brushes. The lid warns: not for internal use." },
+
+  { id = "insulated_wiring", name = "insulated wiring", glyph = "$",
+    color = P.RED + 3, value = 10, max_stack = 8,
+    desc = "Copper core, cloth jacket. Half the sky runs on this; the other half wants it." },
+
+  { id = "medicinal_herbs", name = "medicinal herbs", glyph = "%", heal = 3,
+    color = P.GREEN + 5, value = 9, max_stack = 8,
+    desc = "Bitter leaves the sawbones swears by. Not billable - yet." },
 }

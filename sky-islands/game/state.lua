@@ -38,7 +38,15 @@ function M.update(self, dt)
 end
 
 function M.draw(self, dt)
-  for _, s in ipairs(self.stack) do
+  local start = 1
+  for i = #self.stack, 1, -1 do
+    if self.stack[i].opaque then
+      start = i
+      break
+    end
+  end
+  for i = start, #self.stack do
+    local s = self.stack[i]
     s.draw(s, dt)
   end
 end

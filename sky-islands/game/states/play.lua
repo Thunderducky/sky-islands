@@ -25,7 +25,7 @@ local function container_here(S_)
       return { name = "your lockbox", items = f.stash, cap = eco.stash_slots }
     elseif id == "trader" then
       return { name = "company store", items = f.stock, cap = eco.trader_slots,
-        prices = { buy = eco.buy_mult, sell = eco.sell_mult } }
+        prices = { buy = eco.buy_mult, sell = eco.sell_mult, market = true } }
     elseif f.loot then
       local cont = { name = f.def.name, items = f.loot, cap = f.def.slots or 10 }
       if f.def.take_only then
@@ -50,16 +50,34 @@ local function interact(S_)
   local f = sub.feature_at(S_.island, S_.player.x, S_.player.y)
   local id = f and f.def.id
   if id == "extract_beacon" then
-    if turn.take(S_, "submit") == "submit" then
-      local result = require("sim.contract").settle(S_)
-      S_.persist.debt = result.debt_after
-      S_.persist.credits = S_.persist.credits + result.kept
-      S_.stack:switch(require("game.states.report"), result)
-    end
+    -- leaving is a one-way step (settle, cycle++): confirm first
+    S_.stack:push(require("game.states.confirm"), {
+      text = "Submit the survey and call the skiff home?",
+      extra_hint = "[G] check the skiff hold first",
+      extra_keys = {
+        g = function()
+          S_.stack:push(require("game.states.transfer"), container_here(S_))
+        end,
+      },
+      on_yes = function()
+        if turn.take(S_, "submit") == "submit" then
+          local result = require("sim.contract").settle(S_)
+          S_.persist.debt = result.debt_after
+          S_.persist.credits = S_.persist.credits + result.kept
+          S_.stack:switch(require("game.states.report"), result)
+        end
+      end,
+    })
   elseif id == "coordinator" then
     S_.stack:push(require("game.states.offers"))
   elseif id == "trader" then
     S_.stack:push(require("game.states.transfer"), container_here(S_))
+    -- market event that's still news? the keeper talks first
+    local ev = S_.market and S_.market.event
+    if ev and not ev.gossip_seen then
+      ev.gossip_seen = true
+      S_.stack:push(require("game.states.gossip"), ev)
+    end
   elseif id == "bunk" then
     require("game.run").sleep()
   elseif id == "skiff_dock" then
