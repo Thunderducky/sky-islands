@@ -7,6 +7,30 @@ prototype, not a library).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-11
+### Added
+- Latent island features (SI-0003): islands can now carry an old
+  factory, ore deposit, magical inscription, freshwater spring, or
+  grand pre-Fracture ruin — worth nothing to use yet, worth real money
+  to report. Big features are surveyed on sight; deposits and
+  inscriptions demand assay work on the tile ([Space], costs a turn).
+  Bounties are itemized on the survey letter under a "notable features"
+  line, separate from cache bounties. Nastier islands carry better
+  bones.
+- Feature footprints (SI-0023): the big latent features now occupy real
+  space — the grand ruin is a walled shell of pre-Fracture masonry with
+  ways in, the factory a rubble-floored hulk, the ore deposit a cross
+  of broken stone, the spring a small pool. Masked prefabs (not just
+  rectangles); spotting any part of one surveys it, and assay work can
+  be done from anywhere inside it. Island generation routes the beacon
+  and caches around their walls — and a cache can legitimately turn up
+  inside a ruin.
+- Sleep transition (SI-0013): the bunk asks first (y/n, with [G] to
+  open the lockbox), then a black wipe rolls in from the left and the
+  night holds at full dark — "you sleep. [Space] rise" — for as long as
+  you like (the save/heal/hunger tick happens at dark). Space brings
+  the morning sweeping back in.
+
 ## [1.1.0] - 2026-07-11
 ### Added
 - Title screen with art banner (art banner -> instructions -> game),
@@ -74,7 +98,8 @@ Initial release. The full survey-contract loop, playable start to finish.
   https://thunderducky.github.io/sky-islands/.
 - 88 headless tests (`sky-islands/tests/run.lua`).
 
-[Unreleased]: https://github.com/Thunderducky/sky-islands/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Thunderducky/sky-islands/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Thunderducky/sky-islands/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Thunderducky/sky-islands/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/Thunderducky/sky-islands/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/Thunderducky/sky-islands/releases/tag/v1.0.0
