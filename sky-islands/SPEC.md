@@ -609,6 +609,43 @@ because islands are pure functions of seed (no storage needed).
   "unconfirmed" in the report — estimate-error fiction in miniature;
   footprints that CONTAIN things by design (SI-0010 on-ramp).
 
+## People & conversations (BUILT 2026-07-12 — descriptive)
+
+Stock characters + visitor checks (SI-0005). Tether-only (SI-0026 is
+characters on mission islands). Titles, not names (SI-0025).
+
+- **Defs** (`defs/npcs.lua`): one table per person — id, title, glyph/
+  color, `fixed` (always seated at a hubgen map spot: "1" store runner,
+  "2" quest broker) or `visitor` (rolled onto pier berths "b" each
+  cycle), `visit_on_event` (econ event id -> near-certain presence,
+  economy.npcs.event_visitor_chance), `trade` + `stock_table` (loot
+  shape) + `slots`, and a `conversation`. Load-time checks throughout.
+- **NPCs are SOLID and distinct from creatures**: `sim/npcs.lua` owns
+  `at/adjacent_to/populate`; the move verb blocks on people (flavor
+  line, NO turn, never an attack). Static — nobody wanders yet.
+- **Population** (`npcs.populate`, called from new_game/continue and
+  turn_market after every cycle++): fixed cast + visitors from
+  `rng.derive(master, "visitors:<cycle>")`. Presence rolls are drawn
+  once per visitor def unconditionally (fixed draw count = determinism);
+  a debug `force_visitor` takes the first berth without perturbing the
+  stream. NPCs are NEVER serialized — same-cycle repopulation is
+  deterministic. Known wart: visitor stock mutations reset on reload.
+- **[T] to talk** (new keybinding): targets the adjacent person; two or
+  more within reach opens a picker (states/pick_npc.lua). Conversation
+  (states/talk.lua): greeting (greeting_free override when debt == 0)
+  -> flat topic menu -> `(trade)` when willing (transfer UI on their
+  container at economy.npcs.prices — steep spread, tiny slots) ->
+  `(goodbye)`. v1 format is deliberately shallow: no conditions, no
+  trees, prove-it-first. `trade_store = true` (the store runner) makes
+  (trade) open the island's trader COUNTER instead — real stock, market
+  prices; the counter tile keeps working too. Authored islands can seat
+  a counter (legend f = "trader", cell.loot = its stock).
+- **Veteran charters**: debt == 0 adds a 4th offer to the board (danger
+  3 + economy.veteran.premium, green "veteran charter" blurb), rolled
+  AFTER the standard three so freedom never changes them.
+- Rendering: people draw dim on remembered ground (residents are known
+  fixtures), full color when visible.
+
 ## Web export & deployment (v1)
 
 - `usagi export --target web` (run in this directory) → `sky-islands-web.zip`

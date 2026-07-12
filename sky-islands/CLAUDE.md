@@ -53,6 +53,7 @@ return {
   invulnerable = true,          -- live: attacks roll/swing but never wound
   no_hunger = true,             -- live: hunger frozen (regen still runs)
   docile_creatures = true,      -- live: nothing hunts or holds a grudge
+  force_visitor = "quartermaster", -- live: always at the Tether
   force_level = "proving_grounds", -- new games start ON this authored
                                 -- island (defs/islands.lua); it also
                                 -- stays on the board for re-entry
@@ -122,8 +123,9 @@ filename; `move` relocates the file and rewrites its `status:` line.
   (pack + hunger meter + eat), examine, offers (contract board), confirm
   (generic y/n overlay; `extra_keys` adds detours like [G] open hold),
   gossip (market-event news, once per event), sleepwipe (sleep
-  transition; sleep() fires at full dark, holds for Space), report,
-  rescued (retrieval invoice), manumission.
+  transition; sleep() fires at full dark, holds for Space), talk
+  (conversation: greeting/topics/trade/goodbye), pick_npc (who-to-talk
+  picker), report, rescued (retrieval invoice), manumission.
   Each: `{enter?, leave?, update?, draw, key?}`.
 - `game/run.lua` — flow: new_game/continue_game → hub; offers();
   start_mission; return_to_hub (cycle++, restock, autosave); rescue()
@@ -137,7 +139,9 @@ filename; `move` relocates the file and rewrites its `status:` line.
   fog-exempt (always drawn).
 - `sim/actions.lua` — turn verbs (move — incl. bump attack, toggle_door,
   wait, submit, assay). `sim/discovery.lua` — latent-feature discovery
-  (sight scan after FOV updates + the assay work; run.notable list). `sim/turn.lua` — applies verb, advances clock, hunger
+  (sight scan after FOV updates + the assay work; run.notable list).
+  `sim/npcs.lua` — people: solid, [T] to talk, populate() per cycle
+  (fixed cast + visitor rolls; never serialized, always re-derived). `sim/turn.lua` — applies verb, advances clock, hunger
   tick, CREATURE PHASE, collapse checks (hunger or hp<=0 return
   "collapse"). `sim/needs.lua` — hunger states, passive regen, use()
   (nutrition eats / heal bandages). `sim/creatures.lua` — AI
@@ -176,6 +180,11 @@ filename; `move` relocates the file and rewrites its `status:` line.
   counts per danger tier: `economy.danger.latent`. Placement and
   discovery are generic — no code per feature. SI-0020 is the
   content-generation task.
+- **Person/NPC**: one table in `defs/npcs.lua` (title not name, glyph,
+  fixed or visitor, optional trade+stock_table+slots, conversation =
+  greeting + flat topics — full contract in SPEC "People &
+  conversations"). Fixed cast needs a hubgen map spot char; visitors
+  seat on pier berths automatically. Talk keybinding is [T].
 - **Econ/market event**: one table in `defs/econ_events.lua` — authoring
   guide comment at the top of that file, full contract in SPEC "Market
   events". Effects say semantic demand levels (glut/low/high/critical);

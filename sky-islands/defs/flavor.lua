@@ -263,6 +263,21 @@ M.events = {
       "You wait. Somewhere below, clouds are doing the same.",
     },
   },
+  -- people (SI-0005)
+  talk_no_one = {
+    color = P.GRAY + 6,
+    templates = {
+      "No one within arm's reach. The wind declines to chat.",
+      "You clear your throat at nobody in particular.",
+    },
+  },
+  npc_blocked = {
+    color = P.GRAY + 7,
+    templates = {
+      "{title} doesn't budge. [T] to talk.",
+      "You stop short of walking straight into {title}.",
+    },
+  },
   -- latent features (SI-0003)
   latent_sighted = {
     color = P.MAGENTA + 5,

@@ -24,6 +24,7 @@ function _init()
     h = input.KEY_H, j = input.KEY_J, k = input.KEY_K, l = input.KEY_L,
     y = input.KEY_Y, u = input.KEY_U, b = input.KEY_B, n = input.KEY_N,
     g = input.KEY_G, o = input.KEY_O, i = input.KEY_I, x = input.KEY_X,
+    t = input.KEY_T,
     r = input.KEY_R, q = input.KEY_Q, c = input.KEY_C, d = input.KEY_D,
     period = input.KEY_PERIOD, space = input.KEY_SPACE,
     tab = input.KEY_TAB, backspace = input.KEY_BACKSPACE,

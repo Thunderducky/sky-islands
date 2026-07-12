@@ -63,6 +63,9 @@ local function turn_market()
   if news.started then
     flavor.emit("market_news", { line = news.started.log })
   end
+  -- who's around follows what's happening: reseat the Tether's people
+  -- for the new cycle (event-tied visitors read the fresh event state)
+  require("sim.npcs").populate(State)
 end
 
 -- Debug flags (State.debug, see CLAUDE.md) apply here only: new games
@@ -104,6 +107,7 @@ function M.new_game(master_seed)
   end
   enter_island(hubgen.build(State.defs), "hub")
   restock_trader()
+  require("sim.npcs").populate(State)
   -- debug force_level: skip the Tether, drop straight onto the authored
   -- island (the hub still exists underneath for returns/rescues, and the
   -- level stays pinned to the board for re-entry)
@@ -122,6 +126,10 @@ function M.continue_game(snap)
   save.restore(snap)
   init_session()
   restock_trader()
+  -- old saves lack people; same-cycle repopulation is deterministic so
+  -- current saves get the same faces back (visitor stock resets with
+  -- them — acceptable wart, noted in the task)
+  require("sim.npcs").populate(State)
   fov.update(State.island, State.defs, State.player.x, State.player.y,
     State.defs.economy.island.fov_radius)
   flavor.emit("hub_arrive", {})
@@ -145,6 +153,17 @@ function M.offers()
       fee = r:int(eco.fee_min, eco.fee_max) + eco.danger.premium[danger],
       danger = danger,     -- the truth (drives generation)
       reported = reported, -- what the board says; sometimes it lies
+    }
+  end
+  -- veteran charter: freedom opens the deep-sky board (the quest
+  -- broker's promise). Rolled after the standard three so clearing the
+  -- debt never changes what the indentured board would have shown.
+  if State.persist and State.persist.debt == 0 then
+    list[#list + 1] = {
+      seed = r:int(1, 899999),
+      fee = r:int(eco.fee_min, eco.fee_max) + eco.danger.premium[3]
+          + eco.veteran.premium,
+      danger = 3, reported = 3, veteran = true,
     }
   end
   -- debug: pin an authored level to the board (appended AFTER the rolls,

@@ -50,6 +50,18 @@ return {
       t.ok(terr.walkable, c.def.id .. " on walkable ground")
     end
 
+    -- the whole cast is seated for conversation testing
+    t.eq(#island.npcs, 5, "all five people on the dev island")
+    local npcs = require("sim.npcs")
+    for _, n in ipairs(island.npcs) do
+      local terr = defs.terrain[sub.get(island, "terrain", n.x, n.y)]
+      t.ok(terr.walkable, n.def.id .. " on walkable ground")
+      t.eq(npcs.at(island, n.x, n.y), n, n.def.id .. " findable via at()")
+      if n.def.trade then
+        t.ok(#n.stock > 0, n.def.id .. " has authored stock")
+      end
+    end
+
     -- footprint latents got stamped: the ruin's authored char (31,12)
     -- seats a rep with an origin, and a wall tile of its mask maps back
     local ruin = sub.feature_at(island, 31, 12)

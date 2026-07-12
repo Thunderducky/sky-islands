@@ -6,6 +6,8 @@
 -- def has a footprint, world/authored.lua stamps the whole splat around
 -- that point (leave clearance in the art; out-of-bounds fails loudly).
 -- Every island needs exactly one extract_beacon (it's also the start).
+-- `npcs` seats people (defs/npcs.lua) at fixed spots; traders need
+-- explicit `stock` (authored islands roll no dice).
 --
 -- Loaded via debugflags `force_level = "<id>"` for now (direct start +
 -- board pin); real authored destinations (NPC islands, SI-0006) will
@@ -19,6 +21,18 @@ return {
       { def = "dust_hen", x = 12, y = 10 },
       { def = "thorn_hog", x = 33, y = 18 },
     },
+    -- the whole cast, for conversation/trade testing without hub trips.
+    -- traders get explicit stock (authored islands roll no dice).
+    npcs = {
+      { def = "store_runner", x = 14, y = 10 },
+      { def = "quest_broker", x = 16, y = 10 },
+      { def = "quartermaster", x = 18, y = 12,
+        stock = { { id = "sealant_tin", n = 2 },
+                  { id = "insulated_wiring", n = 3 } } },
+      { def = "core_tourist", x = 26, y = 10,
+        stock = { { id = "preserves_jar", n = 2 } } },
+      { def = "wildlife_researcher", x = 26, y = 17 },
+    },
     map = {
       "                                        ",
       "                                        ",
@@ -30,7 +44,7 @@ return {
       "  ,,####+###,,,,,,,,o,,,,,,,,,,,,,,,,,  ",
       "  ,,,,.........................,,,,,T,  ",
       "  ,,,,.........................,,,,,,,  ",
-      "  ,,,,.........................,,,,,,,  ",
+      "  ,,,,.......R.................,,,,,,,  ",
       "  ,,,,.........................,,,,,,,  ",
       "  ,,,,................**.......M,,,,,,  ",
       "  ,,,,.........................,,,,,,,  ",
@@ -61,6 +75,9 @@ return {
       ["F"] = { t = "dirt", f = "old_factory" },
       ["?"] = { t = "grass", f = "magical_inscription" },
       ["M"] = { t = "grass", f = "grand_ruin" },
+      ["R"] = { t = "dirt", f = "trader",
+        loot = { { id = "ration_pack", n = 4 }, { id = "bandage", n = 2 },
+                 { id = "hull_plate", n = 2 } } },
       ["c"] = { t = "floor_planks", f = "cache_small",
         loot = { { id = "salvage_copper", n = 4 },
                  { id = "insulated_wiring", n = 2 } } },

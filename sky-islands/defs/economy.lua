@@ -32,6 +32,16 @@ return {
     start_chance = 0.5,
   },
 
+  -- People at the Tether (SI-0005): visitor rolls per cycle + how much
+  -- worse trading with a person is than trading with the store.
+  npcs = {
+    berth_chance = 0.35,         -- per visitor, per cycle
+    event_visitor_chance = 0.9,  -- when their tied econ event is active
+    prices = { buy = 1.8, sell = 0.45 }, -- small wallets, steep spread
+  },
+  -- Veteran charters appear on the board once the indenture is cleared.
+  veteran = { premium = 120 },
+
   -- Store restock, rebuilt every cycle from (master, "market:<cycle>").
   -- staples always appear; grab_bag entries are loot-table-shaped rolls.
   store = {

@@ -128,6 +128,16 @@ function S.key(self, k)
     act("toggle_door")
   elseif k == "period" then
     act("wait")
+  elseif k == "t" then
+    local near = require("sim.npcs").adjacent_to(State.island,
+      State.player.x, State.player.y)
+    if #near == 0 then
+      flavor.emit("talk_no_one", {})
+    elseif #near == 1 then
+      State.stack:push(require("game.states.talk"), near[1])
+    else
+      State.stack:push(require("game.states.pick_npc"), near)
+    end
   elseif k == "i" then
     State.stack:push(require("game.states.inventory"))
   elseif k == "x" then

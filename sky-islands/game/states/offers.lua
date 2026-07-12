@@ -48,8 +48,10 @@ function S.draw(self)
     L.text(x, cy, label, i == self.cur and P.WHITE or P.UI_TEXT)
     local d = DANGER[offer.reported]
     L.text(x + 10, cy, d[1]:upper(), d[2])
-    L.text(x + 20, cy, offer.authored and "[debug] authored" or "uncharted isle",
-      offer.authored and P.MAGENTA + 5 or P.UI_DIM)
+    local blurb, bcolor = "uncharted isle", P.UI_DIM
+    if offer.authored then blurb, bcolor = "[debug] authored", P.MAGENTA + 5
+    elseif offer.veteran then blurb, bcolor = "veteran charter", P.GREEN + 5 end
+    L.text(x + 20, cy, blurb, bcolor)
     L.text(x + 38, cy, string.format("%4dc", offer.fee), P.GOLD + 5)
   end
 

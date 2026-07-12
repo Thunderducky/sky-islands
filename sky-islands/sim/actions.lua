@@ -43,6 +43,11 @@ M.verbs = {
       creatures.player_attack(S, c, ci)
       return { kind = "attack" }
     end
+    local person = require("sim.npcs").at(island, nx, ny)
+    if person then -- people are solid, and bumping them is not a verb
+      flavor.emit("npc_blocked", { title = person.def.title })
+      return nil -- no turn: you just stopped short
+    end
     local t = defs.terrain[sub.get(island, "terrain", nx, ny)]
     if t.is_sky then
       flavor.emit("sky_blocked", {})

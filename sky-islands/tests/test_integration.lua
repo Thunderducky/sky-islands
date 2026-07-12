@@ -397,6 +397,64 @@ return {
     t.ok(draw_calls > 100, "drawing actually happened")
   end,
 
+  talk_to_the_store_runner = function(t)
+    _config()
+    _init()
+    SAVED = nil
+    require("game.run").new_game(2468)
+    local spots = require("world.hubgen").spots()
+    local rs = spots.fixed.store_runner
+    local npcs = require("sim.npcs")
+    local runner = npcs.at(State.island, rs.x, rs.y)
+    t.ok(runner, "store runner at her spot")
+
+    -- people are solid: bumping is not an attack and costs no turn
+    State.player.x, State.player.y = rs.x - 1, rs.y
+    local turn0 = State.clock.turn
+    State.stack:key("l") -- bump east into the runner
+    t.eq(State.player.x, rs.x - 1, "blocked, not walked through")
+    t.eq(State.clock.turn, turn0, "bumping a person costs no turn")
+
+    -- T talks; topic shows; goodbye closes
+    local talk = require("game.states.talk")
+    State.stack:key("t")
+    t.ok(State.stack:top() == talk, "T opens the conversation")
+    State.stack:draw(0.016)
+    State.stack:key("space") -- first topic
+    State.stack:draw(0.016)
+    State.stack:key("down")
+    State.stack:key("down")
+    State.stack:key("down") -- (trade): she runs the counter
+    State.stack:key("space")
+    local transfer = require("game.states.transfer")
+    t.ok(State.stack:top() == transfer, "runner's trade opens the store")
+    State.stack:key("backspace")
+    t.ok(State.stack:top() == talk, "back to the conversation")
+    State.stack:key("down") -- (goodbye)
+    State.stack:key("space")
+    t.ok(State.stack:top() ~= talk, "goodbye closes the conversation")
+
+    -- T with nobody near: just a flavor line, no state change
+    State.player.x, State.player.y = State.island.start_x, State.island.start_y
+    local top = State.stack:top()
+    State.stack:key("t")
+    t.ok(State.stack:top() == top, "talking to the wind changes nothing")
+
+    -- veteran charter appears once free
+    local offers0 = require("game.run").offers()
+    local vet0 = false
+    for _, o in ipairs(offers0) do vet0 = vet0 or (o.veteran == true) end
+    t.eq(vet0, false, "no veteran charter while indentured")
+    local debt = State.persist.debt
+    State.persist.debt = 0
+    local offers1 = require("game.run").offers()
+    local vet1 = false
+    for _, o in ipairs(offers1) do vet1 = vet1 or (o.veteran == true) end
+    t.ok(vet1, "freedom opens the veteran board")
+    t.eq(#offers1, #offers0 + 1, "standard offers unchanged by freedom")
+    State.persist.debt = debt
+  end,
+
   market_gossip_shows_once = function(t)
     _config()
     _init()

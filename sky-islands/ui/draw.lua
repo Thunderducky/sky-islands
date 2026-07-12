@@ -81,6 +81,19 @@ function M.map(S)
       L.text(m.x + sx, m.y + sy, c.def.glyph, c.def.color)
     end
   end
+  -- people: solid residents; drawn dim on remembered ground (you know
+  -- where the store runner stands even when she's out of sight)
+  for _, n in ipairs(island.npcs or {}) do
+    local sx, sy = n.x - cam_x, n.y - cam_y
+    if sx >= 0 and sy >= 0 and sx < m.w and sy < m.h then
+      local fog = island.fog[n.y * island.w + n.x + 1]
+      if fog == 2 then
+        L.text(m.x + sx, m.y + sy, n.def.glyph, n.def.color)
+      elseif fog == 1 then
+        L.text(m.x + sx, m.y + sy, n.def.glyph, P.dim(n.def.color))
+      end
+    end
+  end
   -- player, always on top (tile bg stays: only the glyph is the player)
   L.text(m.x + S.player.x - cam_x, m.y + S.player.y - cam_y, "@", P.WHITE)
 end

@@ -13,19 +13,19 @@ local MAP = {
   "         ,,T,,,,,,,,,,,,T,,,          ",
   "       ,,,#########,#########,,       ",
   "       ,*,#-------#,#-------#,T,      ",
-  "      ,,,,#--8----#,#---R---#,,,,     ",
+  "      ,,,,#--8----#,#--1R---#,,,,     ",
   "      ,,T,#-------+,+-------#,*,,     ",
   "       ,,,#########,#########,,,      ",
   "       ,,,,,..................,,      ",
   "      ,,,,,.....,,T,,....,*,,.,,      ",
   "     ,,,####+####,,......\",,..,,,     ",
   "     ,,,#-------#,,.....,....,T,      ",
-  "     ,,,#---M---#,......,,...,,       ",
+  "     ,,,#--2M---#,......,,...,,       ",
   "     ,,,#-------#,....,,,....,,       ",
   "      ,,#########,...........,        ",
   "      ,,,v,...................        ",
   "       ,,,,......-----D               ",
-  "        ,,T......-----                ",
+  "        ,,T......--bb-                ",
   "         ,,,,....*,,,                 ",
   "           ,,,,,,,,,                  ",
   "                                      ",
@@ -46,7 +46,31 @@ local LEGEND = {
   ["R"] = { t = "floor_planks", f = "trader" },
   ["M"] = { t = "floor_planks", f = "coordinator" },
   ["D"] = { t = "floor_planks", f = "skiff_dock" },
+  -- people spots (SI-0005): "1" store runner, "2" quest broker,
+  -- "b" visitor berths on the pier. Terrain only; sim/npcs.lua seats
+  -- people here via M.spots().
+  ["1"] = { t = "floor_planks" },
+  ["2"] = { t = "floor_planks" },
+  ["b"] = { t = "floor_planks" },
 }
+
+-- Where people stand (from the map art above). Pure function of the
+-- MAP constant — no island state, so restored saves re-derive it free.
+function M.spots()
+  local out = { fixed = {}, berths = {} }
+  local roles = { ["1"] = "store_runner", ["2"] = "quest_broker" }
+  for ry, row in ipairs(MAP) do
+    for rx = 1, #row do
+      local ch = row:sub(rx, rx)
+      if roles[ch] then
+        out.fixed[roles[ch]] = { x = rx - 1, y = ry - 1 }
+      elseif ch == "b" then
+        out.berths[#out.berths + 1] = { x = rx - 1, y = ry - 1 }
+      end
+    end
+  end
+  return out
+end
 
 function M.build(defs)
   local h, w = #MAP, #MAP[1]

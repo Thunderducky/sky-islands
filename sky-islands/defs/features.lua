@@ -115,10 +115,12 @@ M.features = {
   { id = "bunk", name = "your bunk", glyph = "8", color = P.TAN + 5,
     desc = "A company bunk, rented weekly. The lockbox under it is yours. [Space] sleep, [g] stash." },
 
-  { id = "trader", name = "company store", glyph = "@", color = P.GOLD + 5,
-    desc = "The Meridian company store. They pay you, then they charge you. [Space] trade." },
+  -- counters/desks are furniture now (SI-0005): the PEOPLE stand beside
+  -- them, so the station glyphs stopped pretending to be people
+  { id = "trader", name = "store counter", glyph = "]", color = P.GOLD + 5,
+    desc = "The Meridian company store counter. They pay you, then they charge you. [Space] trade." },
 
-  { id = "coordinator", name = "mission coordinator", glyph = "@", color = P.BLUE + 6,
+  { id = "coordinator", name = "contract desk", glyph = "]", color = P.BLUE + 6,
     desc = "The coordinator's desk: survey contracts, posted and priced. [Space] browse." },
 
   { id = "skiff_dock", name = "skiff dock", glyph = ">", color = P.MAGENTA + 5,

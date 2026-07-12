@@ -50,6 +50,13 @@ function M.build(defs, spec)
           end
           caches = caches + 1
         end
+        if f.def.id == "trader" then
+          -- an authored store counter: cell.loot is its stock
+          f.stock = {}
+          for _, s in ipairs(cell.loot or {}) do
+            f.stock[#f.stock + 1] = { id = s.id, n = s.n }
+          end
+        end
         if f.def.latent then
           f.found = false
           local rox, roy = stamp_latent_footprint(island, defs, f.def, x, y)
@@ -77,6 +84,17 @@ function M.build(defs, spec)
     local def = defs.creature_by_id[c.def]
     island.creatures[#island.creatures + 1] = {
       def = def, x = c.x, y = c.y, hp = def.max_hp, mp = 0, state = "wander",
+    }
+  end
+
+  island.npcs = {}
+  for _, n in ipairs(spec.npcs or {}) do
+    local stock = {}
+    for _, s in ipairs(n.stock or {}) do
+      stock[#stock + 1] = { id = s.id, n = s.n }
+    end
+    island.npcs[#island.npcs + 1] = {
+      def = defs.npc_by_id[n.def], x = n.x, y = n.y, stock = stock,
     }
   end
   return island

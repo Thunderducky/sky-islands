@@ -125,6 +125,27 @@ function M.load()
     assert(M.item_by_id[s.item], "store grab_bag: unknown item " .. s.item)
   end
 
+  -- people: strict at load, like everything else
+  M.npc_list = require("defs.npcs")
+  M.npc_by_id = index_by_id(M.npc_list)
+  for _, n in ipairs(M.npc_list) do
+    local c = n.conversation
+    assert(c and c.greeting, n.id .. ": needs a conversation greeting")
+    for _, topic in ipairs(c.topics or {}) do
+      assert(topic.label and topic.text, n.id .. ": topic needs label + text")
+    end
+    if n.trade then
+      assert(n.slots, n.id .. ": traders need a slots cap")
+    end
+    for _, e in ipairs(n.stock_table or {}) do
+      assert(M.item_by_id[e.item], n.id .. ": unknown stock item " .. e.item)
+    end
+    if n.visit_on_event then
+      assert(M.econ_event_by_id[n.visit_on_event],
+        n.id .. ": unknown visit_on_event " .. n.visit_on_event)
+    end
+  end
+
   -- authored islands: strict at load, like everything else
   M.island_list = require("defs.islands")
   M.island_by_id = index_by_id(M.island_list)
@@ -158,6 +179,13 @@ function M.load()
     for _, c in ipairs(isl.creatures or {}) do
       assert(M.creature_by_id[c.def], isl.id .. ": unknown creature " ..
         tostring(c.def))
+    end
+    for _, n in ipairs(isl.npcs or {}) do
+      assert(M.npc_by_id[n.def], isl.id .. ": unknown npc " .. tostring(n.def))
+      for _, s in ipairs(n.stock or {}) do
+        assert(M.item_by_id[s.id], isl.id .. ": npc " .. n.def ..
+          ": unknown stock item " .. tostring(s.id))
+      end
     end
   end
   return M

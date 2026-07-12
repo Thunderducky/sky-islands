@@ -7,6 +7,24 @@ prototype, not a library).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-12
+### Added
+- People at the Tether (SI-0005): the store runner and quest broker now
+  stand at their posts, and visitors — a ship's quartermaster, a tourist
+  from the Core, a wildlife researcher — dock at the pier berths some
+  cycles (the quartermaster near-always while a patrol ship is in for
+  repairs). Press [T] next to someone to talk: greeting, a few topics,
+  a trade option for the ones willing (small stock, steep spread), and
+  goodbye. People are solid — you walk around them, not through them —
+  and greetings change once your account is closed.
+- Veteran charters: with the indenture cleared, the contract board gains
+  a fourth, deep-sky offer at a premium fee. The quest broker was telling
+  the truth.
+- The store runner's trade opens the store itself — talk to her or use
+  the counter, same shelves either way. Station glyphs became furniture
+  (a gold store counter, a blue contract desk) now that actual people
+  stand beside them.
+
 ## [1.2.0] - 2026-07-11
 ### Added
 - Latent island features (SI-0003): islands can now carry an old
@@ -98,7 +116,8 @@ Initial release. The full survey-contract loop, playable start to finish.
   https://thunderducky.github.io/sky-islands/.
 - 88 headless tests (`sky-islands/tests/run.lua`).
 
-[Unreleased]: https://github.com/Thunderducky/sky-islands/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Thunderducky/sky-islands/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Thunderducky/sky-islands/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Thunderducky/sky-islands/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Thunderducky/sky-islands/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/Thunderducky/sky-islands/compare/v1.0.0...v1.0.1
