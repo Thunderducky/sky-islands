@@ -352,6 +352,12 @@ Coined while writing patrol_repairs gossip; tentative but pointed:
     deliberate: privateers raid under charter, implying rival companies
     issue letters of marque. Antagonist ecology implied in one word;
     connects to the no-antagonist gap and pirate-as-weather events.
+  - **The Conglomerate core** (Eric, 2026-07-12, via SI-0005 visitor
+    "tourist from the Conglomerate core") — the Conglomerate has a HOME
+    region, which makes the Tether a frontier. Tourists implies the
+    core is safe, rich, and curious about the edge. Where escape
+    tickets, refined goods, and eventually the player's story of
+    "getting out" point toward — or away from.
 
 ### Writing principle: gossip shows, UI states (Eric, 2026-07-11)
 From the patrol_repairs text review: gossip lines stay flavorful and
