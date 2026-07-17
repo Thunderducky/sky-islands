@@ -7,6 +7,47 @@ prototype, not a library).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-14
+### Added
+- The trading triangle (SI-0006a): once free, the travel agent on the
+  Tether pier will sell you passage to the **Conglomerate Core** — which
+  pays silly money for frontier goods and drowns in cheap manufactured
+  stock — and the **Patrol Outpost** on the Line, hungry for hull plate,
+  medicine, and anything edible. Fares cost credits AND cycles: markets
+  move while you fly. Each destination has its own store, its own
+  contract board, and a rentable room (bunk + lockbox, per-cycle rent,
+  lapses if you can't pay — resting away from home never saves).
+  Debtors fly company routes only.
+- A retired trader drinks at the Core and will tell you how the spread
+  works, roughly in order of how much money it will make you.
+- Passage out: the Core's agent sells an out-of-sector ticket. Buy it
+  and the surveyor retires — a real ending, standing in for a deeper
+  one.
+
+- **Portraits**: people have faces now. Talking to someone frames
+  their portrait beside the conversation, and looking at them ([x])
+  pops it at the map's corner. The store runner's is the first real
+  one (96x96, Eric's art); everyone else wears the placeholder until
+  their sitting.
+- Debt is payable only at the company's own counter on the Tether —
+  the Core does not accept payments on someone else's ledger.
+- Ports read as PORT in the sidebar (not SURVEY); the manumission
+  letter no longer overlaps its own banner.
+
+### Fixed
+- Look ([x]) now sees people — every character has a proper
+  description — and long descriptions wrap into the log area instead
+  of running off the screen.
+- The "a structure—" survey beat no longer fires at the Tether or in
+  towns, where buildings are hardly news.
+- Store screen: the hint and market lines get a solid backdrop (map
+  glyphs no longer show through the lettering).
+- Trading from a conversation hides the dialogue box while the store
+  is open instead of stacking the two.
+- Arriving at a destination no longer maroons you in open sky (the
+  authored arrival cell was being skipped; saves that recorded a bad
+  arrival self-heal on load).
+
 ## [1.3.0] - 2026-07-12
 ### Added
 - People at the Tether (SI-0005): the store runner and quest broker now
@@ -20,7 +61,7 @@ prototype, not a library).
 - Veteran charters: with the indenture cleared, the contract board gains
   a fourth, deep-sky offer at a premium fee. The quest broker was telling
   the truth.
-- The store runner's trade opens the store itself — talk to her or use
+- The store runner's trade opens the store itself — talk to him or use
   the counter, same shelves either way. Station glyphs became furniture
   (a gold store counter, a blue contract desk) now that actual people
   stand beside them.
@@ -116,7 +157,8 @@ Initial release. The full survey-contract loop, playable start to finish.
   https://thunderducky.github.io/sky-islands/.
 - 88 headless tests (`sky-islands/tests/run.lua`).
 
-[Unreleased]: https://github.com/Thunderducky/sky-islands/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Thunderducky/sky-islands/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/Thunderducky/sky-islands/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Thunderducky/sky-islands/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Thunderducky/sky-islands/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/Thunderducky/sky-islands/compare/v1.0.1...v1.1.0
