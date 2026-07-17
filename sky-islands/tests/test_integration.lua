@@ -241,15 +241,19 @@ return {
     t.ok(State.persist.debt <= debt0, "debt payment applied (or broke)")
     State.stack:key("backspace")
 
-    -- stash at the bunk, then sleep (saves)
+    -- stash at the locker (the bunk just sleeps now), then sleep
+    local nx2, ny2 = feature_pos(State.island, "locker")
+    t.ok(nx2, "the Tether has a storage locker")
+    State.player.x, State.player.y = nx2, ny2
+    if #State.player.inv > 0 then
+      State.stack:key("g") -- empty locker: focus starts on YOUR pane
+      State.stack:key("space") -- stow a stack
+      State.stack:key("backspace")
+      local locker_f = sub.feature_at(State.island, nx2, ny2)
+      t.ok(#locker_f.stash > 0, "goods stowed in the locker")
+    end
     local bx, by = feature_pos(State.island, "bunk")
     State.player.x, State.player.y = bx, by
-    if #State.player.inv > 0 then
-      State.stack:key("g")
-      State.stack:key("tab")
-      State.stack:key("space")
-      State.stack:key("backspace")
-    end
     SAVED = nil
     State.stack:key("space") -- bunk asks first
     t.ok(State.stack:top() == require("game.states.confirm"),
@@ -453,6 +457,128 @@ return {
     t.ok(vet1, "freedom opens the veteran board")
     t.eq(#offers1, #offers0 + 1, "standard offers unchanged by freedom")
     State.persist.debt = debt
+  end,
+
+  the_trading_triangle = function(t)
+    _config()
+    _init()
+    SAVED = nil
+    require("game.run").new_game(777)
+    local npcs = require("sim.npcs")
+    local spots = require("world.hubgen").spots()
+    local ta = spots.fixed.travel_agent
+    local talk = require("game.states.talk")
+
+    -- indentured: the agent refuses the route
+    State.player.x, State.player.y = ta.x - 1, ta.y
+    State.stack:key("t")
+    t.ok(State.stack:top() == talk, "talking to the agent")
+    local cycle0 = State.cycle
+    State.stack:key("down") -- topic 2
+    State.stack:key("down") -- (fly: Core)
+    State.stack:key("down") -- (fly: Outpost)
+    State.stack:key("space")
+    t.eq(State.cycle, cycle0, "debtors don't fly")
+    t.ok(State.stack:top() == talk, "still at the counter, being told no")
+    State.stack:key("backspace")
+
+    -- free + funded: fly to the outpost
+    State.persist.debt = 0
+    State.persist.credits = 1000
+    State.stack:key("t")
+    for _ = 1, 4 do State.stack:key("down") end -- past 3 topics to (fly: Outpost)
+    State.stack:key("space")
+    t.eq(State.island.name, "Patrol Outpost", "landed on the Line")
+    local at = State.defs.terrain[State.island.terrain[
+        State.player.y * State.island.w + State.player.x + 1]]
+    t.ok(at.walkable, "arrived standing on ground, not marooned in the sky")
+    t.eq(State.persist.credits, 1000 - 90, "fare paid")
+    t.eq(State.cycle, cycle0 + 1, "distance costs cycles")
+    t.eq(SAVED, nil, "no autosave away from home")
+
+    -- the company ledger stays home: [d] is inert at foreign counters
+    local G2 = require("util.grid")
+    local ox2, oy2
+    for idx, f in pairs(State.island.features) do
+      if f.def.id == "trader" then ox2, oy2 = G2.xy(idx, State.island.w) end
+    end
+    State.player.x, State.player.y = ox2, oy2
+    State.persist.debt = 500
+    State.stack:key("space")
+    if State.stack:top() == require("game.states.gossip") then
+      State.stack:key("space")
+    end
+    State.stack:key("d")
+    t.eq(State.persist.debt, 500, "debt not payable at the outpost store")
+    t.eq(State.persist.credits, 910, "no credits moved either")
+    State.stack:key("backspace")
+    State.persist.debt = 0
+
+    -- rent the room, rest (no save); storage away from home is the hold
+    local bx, by, dkx, dky
+    for idx, f in pairs(State.island.features) do
+      if f.def.id == "lodging" then bx, by = G2.xy(idx, State.island.w) end
+      if f.def.id == "skiff_dock" then dkx, dky = G2.xy(idx, State.island.w) end
+      t.ok(f.def.id ~= "locker", "no lockers at destinations")
+    end
+    t.ok(bx, "the outpost rents rooms")
+    t.ok(dkx, "the skiff dock came with you")
+    State.player.x, State.player.y = dkx, dky
+    State.stack:key("g")
+    t.ok(State.stack:top() == require("game.states.transfer"),
+      "the hold opens at the destination dock")
+    State.stack:key("backspace")
+    State.player.x, State.player.y = bx, by
+    State.stack:key("space") -- rent prompt
+    State.stack:key("y")
+    t.eq(State.persist.credits, 910 - 15, "first cycle's rent paid")
+    t.ok(State.lodging["isle:authored:patrol_outpost"], "reservation held")
+    State.stack:key("space") -- rest prompt
+    State.stack:key("y")
+    for _ = 1, 20 do State.stack:update(0.05) end
+    State.stack:key("space") -- rise
+    for _ = 1, 20 do State.stack:update(0.05) end
+    t.eq(SAVED, nil, "resting in a rented room never saves")
+
+    -- their board is a different board (and veteran work is up)
+    local offers = require("game.run").offers()
+    t.ok(#offers >= 4, "outpost board posts work incl. veteran")
+
+    -- fly home: fare + one cycle of rent while in transit
+    local agent = npcs.at(State.island, 12, 13)
+    t.ok(agent and agent.def.id == "travel_agent", "agent at the outpost jetty")
+    State.player.x, State.player.y = 12, 12
+    State.stack:key("t")
+    for _ = 1, 4 do State.stack:key("down") end -- (fly: the Tether)
+    State.stack:key("space")
+    t.ok(State.island.is_hub, "home again")
+    t.eq(State.persist.credits, 895 - 60 - 15,
+      "fare plus rent accrued in transit")
+    t.ok(SAVED ~= nil, "homecoming autosaves")
+
+    -- the ticket out: fly to the Core rich, book passage
+    State.persist.credits = 6000
+    State.player.x, State.player.y = ta.x - 1, ta.y
+    State.stack:key("t")
+    for _ = 1, 3 do State.stack:key("down") end -- (fly: Conglomerate Core)
+    State.stack:key("space")
+    t.eq(State.island.name, "Conglomerate Core", "the Core at last")
+    local at2 = State.defs.terrain[State.island.terrain[
+        State.player.y * State.island.w + State.player.x + 1]]
+    t.ok(at2.walkable, "the Core jetty holds your weight")
+    local agent2 = npcs.at(State.island, 16, 15)
+    t.ok(agent2, "core agent at the jetty")
+    State.player.x, State.player.y = 15, 15
+    State.stack:key("t")
+    for _ = 1, 5 do State.stack:key("down") end -- (book passage OUT)
+    State.stack:key("space")
+    State.stack:key("y")
+    t.ok(State.stack:top() == require("game.states.retired"),
+      "the surveyor retires")
+    State.stack:draw(0.016)
+    State.stack:key("space")
+    t.ok(State.stack:top() ~= require("game.states.retired"),
+      "back to the title, story over")
   end,
 
   market_gossip_shows_once = function(t)

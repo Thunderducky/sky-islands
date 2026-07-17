@@ -68,6 +68,35 @@ local function turn_market()
   require("sim.npcs").populate(State)
 end
 
+-- Lodging rent, charged per cycle per active reservation. Sorted keys:
+-- if you're broke, WHICH reservation lapses first must be deterministic.
+local function charge_lodging()
+  local keys = {}
+  for k in pairs(State.lodging or {}) do keys[#keys + 1] = k end
+  table.sort(keys)
+  for _, key in ipairs(keys) do
+    local island = State.world.islands[key]
+    local fee = island and island.lodging_fee or 0
+    if State.persist.credits >= fee then
+      State.persist.credits = State.persist.credits - fee
+    else
+      State.lodging[key] = nil
+      flavor.emit("lodging_lapsed", { place = island and island.name or key })
+    end
+  end
+end
+
+-- THE clock: every cycle that passes, passes through here. Travel
+-- distance, mission returns, rescues — one path, so markets, people,
+-- and rent always move together.
+local function advance_cycles(n)
+  for _ = 1, n do
+    State.cycle = State.cycle + 1
+    turn_market()
+    charge_lodging()
+  end
+end
+
 -- Debug flags (State.debug, see CLAUDE.md) apply here only: new games
 -- absorb them at birth, saves and continues never carry debug state.
 local function apply_debug_flags(master_seed)
@@ -99,6 +128,8 @@ function M.new_game(master_seed)
   State.clock = { turn = 0 }
   State.world = { islands = {}, current = nil }
   State.mission = nil
+  State.base = "hub"
+  State.lodging = {}
   State.market = market.init()
   State.master = apply_debug_flags(State.master)
   init_session()
@@ -139,7 +170,9 @@ end
 -- Three contracts per cycle, pure function of (master, cycle): browsing
 -- costs nothing and re-browsing shows the same board.
 function M.offers()
-  local r = rng.derive(State.master, "missions:" .. State.cycle)
+  -- each base posts its own board: the derivation tag carries WHERE
+  local where = (State.world and State.world.current) or "hub"
+  local r = rng.derive(State.master, "missions:" .. where .. ":" .. State.cycle)
   local eco = State.defs.economy
   local list = {}
   for i = 1, 3 do
@@ -164,6 +197,7 @@ function M.offers()
       fee = r:int(eco.fee_min, eco.fee_max) + eco.danger.premium[3]
           + eco.veteran.premium,
       danger = 3, reported = 3, veteran = true,
+      distance = eco.veteran.distance, -- deep sky: the flight costs cycles
     }
   end
   -- debug: pin an authored level to the board (appended AFTER the rolls,
@@ -262,6 +296,7 @@ end
 
 function M.start_mission(offer)
   State.mission = offer
+  State.base = State.world.current -- fly back to where you signed on
   State.run = { discovered = {}, notable = {} }
   local island, id
   if offer.authored then
@@ -280,8 +315,8 @@ function M.start_mission(offer)
 end
 
 -- Sleep: time (and hunger) pass, wounds knit at double the natural
--- rate, and the game saves. Hunger clamps below collapse — you can wake
--- starving, but nobody gets billed for a rescue from their own bed.
+-- rate. Saving is a HOME thing — the ledger only writes at the Tether;
+-- a rented room heals you and nothing more.
 function M.sleep()
   local eco = State.defs.economy
   local turns = eco.sleep.turns
@@ -294,7 +329,7 @@ function M.sleep()
   State.player.hp = math.min(eco.player.max_hp,
     State.player.hp + turns // eco.sleep.heal_every)
   flavor.emit("sleep", {})
-  save.write()
+  if State.world.current == "hub" then save.write() end
 end
 
 -- Collapse: the company retrieves you (and its skiff, and incidentally
@@ -308,8 +343,8 @@ function M.rescue()
   local fee = eco.rescue_fee + (injured and eco.medical_fee or 0)
   State.mission = nil
   State.run = nil
-  State.cycle = State.cycle + 1
-  turn_market()
+  State.base = "hub" -- the company retrieves you HOME, wherever you fell
+  advance_cycles(1)
   State.persist.debt = State.persist.debt + fee
   State.player.hunger = 0
   State.player.hunger_state = "full"
@@ -331,16 +366,62 @@ function M.rescue()
   State.stack:switch(require("game.states.rescued"), { injured = injured })
 end
 
+-- Fly back to wherever the contract was signed. Distance costs cycles;
+-- the autosave only happens when home is the Tether.
 function M.return_to_hub()
+  local distance = (State.mission and State.mission.distance) or 1
   State.mission = nil
   State.run = nil
-  State.cycle = State.cycle + 1
-  turn_market()
-  local hub = State.world.islands.hub
-  enter_island(hub, "hub")
-  restock_trader()
-  flavor.emit("hub_arrive", {})
-  save.write() -- autosave every homecoming
+  advance_cycles(distance)
+  local key = State.base or "hub"
+  local base = State.world.islands[key] or State.world.islands.hub
+  enter_island(base, key)
+  if key == "hub" then
+    restock_trader()
+    flavor.emit("hub_arrive", {})
+    save.write() -- autosave every TRUE homecoming
+  else
+    flavor.emit("travel_arrive", { place = base.name })
+  end
+  State.stack:switch(require("game.states.play"))
+end
+
+-- Travel between bases (SI-0006a): fee paid, distance in cycles served.
+-- Gating (freedom, fare) is the travel agent's job in talk.lua; this
+-- just flies. dest_id "hub" comes home; anything else is an authored
+-- destination spec id.
+function M.travel(dest_id)
+  local eco = State.defs.economy
+  local entry
+  if dest_id == "hub" then
+    entry = eco.travel.hub
+  else
+    for _, d in ipairs(eco.travel.destinations) do
+      if d.id == dest_id then entry = d break end
+    end
+  end
+  State.persist.credits = State.persist.credits - entry.fee
+  advance_cycles(entry.distance)
+  local key, island
+  if dest_id == "hub" then
+    key, island = "hub", State.world.islands.hub
+  else
+    key = "isle:authored:" .. dest_id
+    island = State.world.islands[key]
+    if not island then
+      island = require("world.authored").build(State.defs,
+        State.defs.island_by_id[dest_id])
+    end
+  end
+  State.base = key
+  enter_island(island, key)
+  if key == "hub" then
+    restock_trader()
+    flavor.emit("hub_arrive", {})
+    save.write()
+  else
+    flavor.emit("travel_arrive", { place = island.name })
+  end
   State.stack:switch(require("game.states.play"))
 end
 

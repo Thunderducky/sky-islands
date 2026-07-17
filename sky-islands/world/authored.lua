@@ -40,6 +40,11 @@ function M.build(defs, spec)
       local t = defs.terrain[sub.get(island, "terrain", x, y)]
       if not t.is_sky then land = land + 1 end
       local cell = spec.legend[row:sub(rx, rx)]
+      if cell.start then
+        -- OUTSIDE the feature branch: start cells usually have no f
+        island.start_x, island.start_y = x, y
+        island.has_authored_start = true
+      end
       if cell.f then
         local f = sub.feature_at(island, x, y)
         if f.def.loot_table then
@@ -57,6 +62,7 @@ function M.build(defs, spec)
             f.stock[#f.stock + 1] = { id = s.id, n = s.n }
           end
         end
+        if f.def.id == "locker" then f.stash = {} end
         if f.def.latent then
           f.found = false
           local rox, roy = stamp_latent_footprint(island, defs, f.def, x, y)
@@ -74,9 +80,30 @@ function M.build(defs, spec)
       end
     end
   end
-  assert(island.extract_idx, spec.id .. ": no extract_beacon in map")
+  if spec.destination then
+    -- destinations aren't missions: no beacon, but they need an arrival
+    -- spot; fog starts remembered (civilized ground, not survey work)
+    -- new_island defaults start to (0,0) — a TRUTHY sky corner — so the
+    -- check must be "an authored start cell exists AND stands on land",
+    -- not merely "start_x is set" (the marooned-in-the-void bug)
+    assert(island.has_authored_start,
+      spec.id .. ": destination needs a start cell")
+    assert(defs.terrain[island.terrain[
+        island.start_y * w + island.start_x + 1]].walkable,
+      spec.id .. ": start cell must be walkable")
+    island.is_destination = true
+    for i = 1, w * h do
+      if island.fog[i] == 0
+          and not defs.terrain[island.terrain[i]].is_sky then
+        island.fog[i] = 1
+      end
+    end
+    island.seen_count = land
+  else
+    assert(island.extract_idx, spec.id .. ": no extract_beacon in map")
+    island.seen_count = 0 -- surveying it is still the job
+  end
   island.land_count = land
-  island.seen_count = 0 -- surveying it is still the job
   island.cache_count = caches
 
   island.creatures = {}
@@ -86,7 +113,29 @@ function M.build(defs, spec)
       def = def, x = c.x, y = c.y, hp = def.max_hp, mp = 0, state = "wander",
     }
   end
+  M.rehydrate(island, defs, spec)
+  return island
+end
 
+-- Re-attach spec-derived pieces that don't serialize (npcs live in the
+-- spec; store_bias/sells_passage/lodging_fee are config): called at
+-- build AND after save.restore for persistent authored islands.
+function M.rehydrate(island, defs, spec)
+  island.store_bias = spec.store_bias
+  island.sells_passage = spec.sells_passage
+  island.lodging_fee = spec.lodging_fee
+  island.name = spec.name
+  -- re-derive the arrival spot from the spec: saves tainted by the
+  -- marooned-start bug self-heal on load
+  for ry, row in ipairs(spec.map) do
+    for rx = 1, #row do
+      local cell = spec.legend[row:sub(rx, rx)]
+      if cell and cell.start then
+        island.start_x, island.start_y = rx - 1, ry - 1
+        island.has_authored_start = true
+      end
+    end
+  end
   island.npcs = {}
   for _, n in ipairs(spec.npcs or {}) do
     local stock = {}

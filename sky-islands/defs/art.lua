@@ -2,5 +2,7 @@
 -- name -> {x, y, w, h} rect on sprites.png. Re-run the packer,
 -- don't patch this file.
 return {
+  Placeholder = { x = 642, y = 1, w = 96, h = 96 },
+  Storekeeper = { x = 739, y = 1, w = 96, h = 96 },
   TitleScreen = { x = 1, y = 1, w = 640, h = 320 },
 }

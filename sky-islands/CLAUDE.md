@@ -77,6 +77,13 @@ filename; `move` relocates the file and rewrites its `status:` line.
   else is already here.
 - **completed**: verified + accepted. Source material for CHANGELOG
   entries (see Releases below) — don't let these pile up unmined.
+- **Playtest notes**: `dev/playtests/<date>-<build>.md` — Eric's raw
+  notes verbatim + a triage section (bugs/tuning/features/ambiguous).
+  Local-only. Mine the triage into tickets; bugs get fixed pre-release.
+- **Subtickets**: big tickets split as `SI-0006a`, `SI-0006b` (letter
+  suffix, NO hyphen — `task.sh move 0006` must not glob-match them).
+  Created by hand (task.sh new won't mint them); parent keeps the
+  refinement notes, subtickets carry buildable scope.
 - `--spike` on `new` marks investigation work (try it on a branch, see
   what's learned, not committed to landing) rather than committed
   work — still moves through the same four folders.
@@ -124,13 +131,17 @@ filename; `move` relocates the file and rewrites its `status:` line.
   (generic y/n overlay; `extra_keys` adds detours like [G] open hold),
   gossip (market-event news, once per event), sleepwipe (sleep
   transition; sleep() fires at full dark, holds for Space), talk
-  (conversation: greeting/topics/trade/goodbye), pick_npc (who-to-talk
-  picker), report, rescued (retrieval invoice), manumission.
+  (conversation: greeting/topics/trade/travel/goodbye), pick_npc
+  (who-to-talk picker), report, rescued (retrieval invoice),
+  manumission, retired (the Core's passage-out ending).
   Each: `{enter?, leave?, update?, draw, key?}`.
-- `game/run.lua` — flow: new_game/continue_game → hub; offers();
-  start_mission; return_to_hub (cycle++, restock, autosave); rescue()
-  (collapse → debt + bunk). `game/save.lua` — versioned snapshots
-  (see hard rule 10).
+- `game/run.lua` — flow: new_game/continue_game → hub; offers()
+  (per-location boards); start_mission; return_to_hub (flies to
+  State.base, distance in cycles); travel() (fares + advance_cycles:
+  THE clock — market ticks, hub repopulation, lodging rent, one path);
+  rescue() (collapse → debt + Tether bunk). Autosave ONLY on Tether
+  arrivals. `game/save.lua` — versioned snapshots (hard rule 10);
+  rehydrates authored islands' spec statics on restore.
 - `world/substrate.lua` — island + dense layers (terrain, fog) + sparse
   (features, item_piles). `world/islandgen.lua` — seed → island pipeline
   (incl. forage placement). `world/prefab.lua` + `world/hubgen.lua` —

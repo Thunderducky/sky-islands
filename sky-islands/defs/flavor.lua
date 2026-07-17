@@ -263,6 +263,26 @@ M.events = {
       "You wait. Somewhere below, clouds are doing the same.",
     },
   },
+  -- travel & lodging (SI-0006a)
+  travel_arrive = {
+    color = P.BLUE + 6,
+    templates = {
+      "{place}. Different planks, same sky.",
+      "The skiff sets down at {place}. The fare already stings less than the prices will.",
+    },
+  },
+  lodging_rented = {
+    color = P.GOLD + 5,
+    templates = {
+      "A key, a bunk, a lockbox. {fee}c a cycle, and the room forgets you the moment you can't pay.",
+    },
+  },
+  lodging_lapsed = {
+    color = P.RED + 4,
+    templates = {
+      "Word from {place}: your rent bounced. The room's gone; your lockbox waits, unpaid and patient.",
+    },
+  },
   -- people (SI-0005)
   talk_no_one = {
     color = P.GRAY + 6,

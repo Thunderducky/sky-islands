@@ -20,7 +20,8 @@
 --     greeting        what they say when you [T]alk
 --     greeting_free   optional override once the indenture is cleared
 --     topics          flat list of { label, text } — pick one, read the
---                     reply, back to the menu
+--                     reply, back to the menu. Optional text_free
+--                     swaps the reply once the indenture is cleared.
 --     (trade option and "goodbye" are added automatically)
 --
 -- ALL conversation TEXT BELOW IS STUB TEXT (Claude) — Eric rewrites.
@@ -29,9 +30,11 @@ return {
   {
     id = "store_runner",
     title = "the store runner",
+    desc = "He runs the counter like a ship: everything stowed, everything priced. [T] talk.",
+    portrait = "Storekeeper", -- defs/art.lua slice (art-src/ready/portraits/)
     glyph = "R", color = require("palette").GOLD + 6,
-    -- trade_store: her (trade) opens the island's trader COUNTER (real
-    -- stock, market prices) — she runs the store, she doesn't carry it
+    -- trade_store: his (trade) opens the island's trader COUNTER (real
+    -- stock, market prices) — he runs the store, he doesn't carry it
     fixed = true, trade = false, trade_store = true,
     conversation = {
       -- STUB TEXT
@@ -48,6 +51,7 @@ return {
   {
     id = "quest_broker",
     title = "the quest broker",
+    desc = "Contracts, postings, and the careful face of a man who prices danger for a living. [T] talk.",
     glyph = "B", color = require("palette").BLUE + 6,
     fixed = true, trade = false,
     conversation = {
@@ -57,7 +61,47 @@ return {
       topics = {
         { label = "The contracts", text = "Survey work. Walk it, mark it, report it. The company pays for what you know, not what you did to know it." },
         { label = "Danger reports", text = "Best guesses from the last soul who flew over. When the board says CALM, pack a bandage anyway." },
-        { label = "The veteran board", text = "Clear your account and we'll talk about the deep-sky charters. Company rule, not mine." },
+        { label = "The veteran board", text = "Clear your account and we'll talk about the deep-sky charters. Company rule, not mine.",
+          text_free = "It's posted, same board, better work. Deep-sky charters, real fees, two cycles out. Try to come back - a rescue reopens your account, and the board forgets you." },
+      },
+    },
+  },
+
+  {
+    id = "travel_agent",
+    title = "the travel agent",
+    desc = "Fare tables and a long coat. She knows every jetty the sky still holds. [T] talk.",
+    glyph = "A", color = require("palette").TAN + 5,
+    -- travel = true: the conversation menu grows (fly: ...) entries per
+    -- economy.travel. The retire-passage entry appears when the ISLAND
+    -- sets sells_passage (the Core) — one def, seated everywhere.
+    fixed = true, trade = false, travel = true,
+    conversation = {
+      -- STUB TEXT
+      greeting = "Skiff charters, scheduled and otherwise. Fares posted, no refunds, weather's the sky's problem.",
+      greeting_free = "Free agent rates, same as everybody. Where to?",
+      topics = {
+        { label = "The routes", text = "Tether to the Core, Tether to the Line. The clock's the real fare - markets don't wait for slow freight." },
+        { label = "The fine print", text = "Company debtors fly company routes only. Clear your ledger and the sky opens up. That's policy, not opinion." },
+        { label = "Baggage", text = "Your skiff flies with you - whatever's in the hold arrives when you do. Lockers stay bolted where they are. Pack accordingly." },
+      },
+    },
+  },
+
+  {
+    id = "retired_trader",
+    title = "a retired trader",
+    desc = "Weathered, unhurried, drinking where the prices cannot hurt him anymore. [T] talk.",
+    glyph = "r", color = require("palette").GOLD + 4,
+    fixed = true, trade = false,
+    conversation = {
+      -- STUB TEXT
+      greeting = "Thirty years hauling the spread. Now I drink where the prices can't hurt me. Sit, ask.",
+      topics = {
+        { label = "Buy low", text = "The Core makes things and drowns in them - rations, gauze, plate. Buy manufactured HERE, cheap, and carry it to people who bleed." },
+        { label = "Sell high", text = "Anything the frontier coughs up - shards, herbs, wild meat - the Core pays silly money for. Exotic is just distance wearing a price tag." },
+        { label = "The clock", text = "Every cycle you sit on cargo, the market moves without you. Distance costs twice: the fare, and the world changing while you fly." },
+        { label = "Room and board", text = "A rented lockbox is a warehouse if you use it right. Stage goods where they'll sell, not where you sleep. And mind the rent - it eats the lazy." },
       },
     },
   },
@@ -65,6 +109,7 @@ return {
   {
     id = "quartermaster",
     title = "a ship's quartermaster",
+    desc = "A patrol ship's quartermaster, ashore with a list and a budget. [T] talk.",
     glyph = "Q", color = require("palette").RED + 5,
     visitor = true, visit_on_event = "patrol_repairs",
     trade = true, slots = 4,
@@ -86,6 +131,7 @@ return {
   {
     id = "core_tourist",
     title = "a tourist from the Core",
+    desc = "Clean boots, bright eyes, a brochure. A long way from the lit streets of the Core. [T] talk.",
     glyph = "C", color = require("palette").MAGENTA + 6,
     visitor = true, trade = true, slots = 3,
     stock_table = {
@@ -106,6 +152,7 @@ return {
   {
     id = "wildlife_researcher",
     title = "a wildlife researcher",
+    desc = "Field glasses, sap-stained sleeves, endless patience. [T] talk.",
     glyph = "W", color = require("palette").GREEN + 6,
     visitor = true, trade = false,
     conversation = {

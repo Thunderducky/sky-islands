@@ -82,7 +82,7 @@ function M.map(S)
     end
   end
   -- people: solid residents; drawn dim on remembered ground (you know
-  -- where the store runner stands even when she's out of sight)
+  -- where the store runner stands even when he's out of sight)
   for _, n in ipairs(island.npcs or {}) do
     local sx, sy = n.x - cam_x, n.y - cam_y
     if sx >= 0 and sy >= 0 and sx < m.w and sy < m.h then
@@ -104,7 +104,8 @@ function M.sidebar(S)
   -- separator
   for y = 0, s.h - 1 do L.text(s.x - 1, y, "|", P.GRAY + 4) end
 
-  L.text(s.x, 0, island.is_hub and "HOME" or "SURVEY", P.GOLD + 5)
+  L.text(s.x, 0, island.is_hub and "HOME"
+    or island.is_destination and "PORT" or "SURVEY", P.GOLD + 5)
   L.text(s.x, 1, island.name, P.BLUE + 6)
 
   if S.mission then

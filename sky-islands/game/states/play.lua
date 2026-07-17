@@ -21,10 +21,14 @@ local function container_here(S_)
     local id = f.def.id
     if id == "skiff_dock" or id == "extract_beacon" then
       return { name = "skiff hold", items = S_.skiff.hold, cap = eco.skiff_slots }
-    elseif id == "bunk" then
-      return { name = "your lockbox", items = f.stash, cap = eco.stash_slots }
+    elseif id == "locker" then
+      -- storage is a HOME thing (the Tether); away, the skiff hold is
+      -- all the storage you get
+      return { name = f.def.name, items = f.stash, cap = eco.stash_slots }
     elseif id == "trader" then
       return { name = "company store", items = f.stock, cap = eco.trader_slots,
+        -- debt is payable ONLY at the company's own counter (the Tether)
+        debt_desk = S_.island.is_hub or nil,
         prices = { buy = eco.buy_mult, sell = eco.sell_mult, market = true } }
     elseif f.loot then
       local cont = { name = f.def.name, items = f.loot, cap = f.def.slots or 10 }
@@ -82,17 +86,38 @@ local function interact(S_)
     -- sleeping passes time and saves: worth a deliberate yes
     S_.stack:push(require("game.states.confirm"), {
       text = "Sleep until morning? (heals, hungers, saves)",
-      extra_hint = "[G] open your lockbox first",
-      extra_keys = {
-        g = function()
-          S_.stack:push(require("game.states.transfer"), container_here(S_))
-        end,
-      },
       on_yes = function()
         S_.stack:push(require("game.states.sleepwipe"))
       end,
     })
   elseif id == "skiff_dock" then
+    S_.stack:push(require("game.states.transfer"), container_here(S_))
+  elseif id == "lodging" then
+    local key = S_.world.current
+    local fee = S_.island.lodging_fee or 0
+    if not (S_.lodging and S_.lodging[key]) then
+      S_.stack:push(require("game.states.confirm"), {
+        text = string.format("Rent the room? (%dc now, %dc per cycle)",
+          fee, fee),
+        on_yes = function()
+          if S_.persist.credits >= fee then
+            S_.persist.credits = S_.persist.credits - fee
+            S_.lodging[key] = true
+            flavor.emit("lodging_rented", { fee = fee })
+          else
+            flavor.emit("broke", {})
+          end
+        end,
+      })
+    else
+      S_.stack:push(require("game.states.confirm"), {
+        text = "Rest until morning? (heals, hungers - no ledger save out here)",
+        on_yes = function()
+          S_.stack:push(require("game.states.sleepwipe"))
+        end,
+      })
+    end
+  elseif id == "locker" then
     S_.stack:push(require("game.states.transfer"), container_here(S_))
   elseif sub.feature_covering(S_.island, S_.player.x, S_.player.y) then
     -- on (or inside the footprint of) a latent feature: survey work, or

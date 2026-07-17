@@ -109,10 +109,14 @@ function M.snapshot()
   local mkt = State.market or { cooldowns = {} }
   local cooldowns = {}
   for id, n in pairs(mkt.cooldowns) do cooldowns[id] = n end
+  local lodging = {}
+  for k in pairs(State.lodging or {}) do lodging[#lodging + 1] = k end
   return {
     version = 1,
     master = State.master,
     cycle = State.cycle,
+    base = State.base or "hub",
+    lodging = lodging,
     market = {
       event = mkt.event and { id = mkt.event.id,
         cycles_left = mkt.event.cycles_left,
@@ -171,6 +175,36 @@ function M.restore(snap)
   State.island = assert(State.world.islands[State.world.current])
   State.mission = nil -- saves only happen at the hub
   State.run = nil
+  State.base = snap.base or "hub"
+  State.lodging = {}
+  for _, k in ipairs(snap.lodging or {}) do State.lodging[k] = true end
+  -- persistent authored islands: re-attach spec statics (npcs, price
+  -- bias, lodging fees) that deliberately don't serialize
+  local authored = require("world.authored")
+  for id, island in pairs(State.world.islands) do
+    local spec_id = id:match("^isle:authored:(.+)$")
+    local spec = spec_id and defs.island_by_id[spec_id]
+    if spec then authored.rehydrate(island, defs, spec) end
+  end
+
+  -- hub migration: the Tether's map evolves between versions (lockers,
+  -- people spots, piers). Rebuild it fresh and transplant the mutable
+  -- bits — trader stock, and the stash wherever an old save kept it.
+  local old_hub = State.world.islands.hub
+  if old_hub then
+    local fresh = require("world.hubgen").build(defs)
+    local old_stash, old_stock
+    for _, f in pairs(old_hub.features) do
+      if f.stash and #f.stash > 0 then old_stash = f.stash end
+      if f.def.id == "trader" and f.stock then old_stock = f.stock end
+    end
+    for _, f in pairs(fresh.features) do
+      if f.def.id == "locker" and old_stash then f.stash = old_stash end
+      if f.def.id == "trader" and old_stock then f.stock = old_stock end
+    end
+    State.world.islands.hub = fresh
+    if State.world.current == "hub" then State.island = fresh end
+  end
 end
 
 function M.write()

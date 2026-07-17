@@ -40,7 +40,19 @@ return {
     prices = { buy = 1.8, sell = 0.45 }, -- small wallets, steep spread
   },
   -- Veteran charters appear on the board once the indenture is cleared.
-  veteran = { premium = 120 },
+  veteran = { premium = 120, distance = 2 },
+
+  -- Travel (SI-0006a): moving between islands costs money AND cycles.
+  -- Freedom required for the destinations; the trip home is always
+  -- bookable. Lodging fees live on the island specs (defs/islands.lua).
+  travel = {
+    hub = { fee = 60, distance = 1 },
+    destinations = {
+      { id = "conglomerate_core", fee = 150, distance = 2 },
+      { id = "patrol_outpost", fee = 90, distance = 1 },
+    },
+    retire_cost = 5000, -- passage out of the sector, sold at the Core
+  },
 
   -- Store restock, rebuilt every cycle from (master, "market:<cycle>").
   -- staples always appear; grab_bag entries are loot-table-shaped rolls.

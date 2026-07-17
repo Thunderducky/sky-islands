@@ -10,6 +10,8 @@ local M = {}
 
 local function post_sight_hooks(S)
   local island, defs = S.island, S.defs
+  -- survey beats only: a "structure" is not news at home or in town
+  if island.is_hub or island.is_destination then return end
   -- one-time beats when the player first STANDS next to notable things
   for _, nb in ipairs(G.neighbors8(S.player.x, S.player.y, island.w, island.h)) do
     local t = defs.terrain[sub.get(island, "terrain", nb.x, nb.y)]

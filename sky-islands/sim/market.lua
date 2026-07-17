@@ -51,16 +51,41 @@ local function level_of(S, item_def)
   return d and S.defs.economy.demand_levels[d] or nil
 end
 
+-- Static per-island price personality (SI-0006a): island.store_bias is
+-- a list of { match, demand } attached by world/authored.lua from the
+-- island spec. Same matching rules as event effects; stacks
+-- MULTIPLICATIVELY with the active event (arbitrage compounds).
+local function bias_level(S, item_def)
+  local bias = S.island and S.island.store_bias
+  if not bias then return nil end
+  for _, eff in ipairs(bias) do
+    if matches(eff, item_def) then
+      return S.defs.economy.demand_levels[eff.demand]
+    end
+  end
+  return nil
+end
+
+-- Static bias demand name for an item on this island (UI markers).
+function M.bias_of(S, item_def)
+  local bias = S.island and S.island.store_bias
+  if not bias then return nil end
+  for _, eff in ipairs(bias) do
+    if matches(eff, item_def) then return eff.demand end
+  end
+  return nil
+end
+
 -- Multiplier on what the store PAYS the player for item_def.
 function M.pay_mult(S, item_def)
-  local lvl = level_of(S, item_def)
-  return lvl and lvl.pay or 1
+  local lvl, b = level_of(S, item_def), bias_level(S, item_def)
+  return (lvl and lvl.pay or 1) * (b and b.pay or 1)
 end
 
 -- Multiplier on what the store CHARGES the player for item_def.
 function M.charge_mult(S, item_def)
-  local lvl = level_of(S, item_def)
-  return lvl and lvl.charge or 1
+  local lvl, b = level_of(S, item_def), bias_level(S, item_def)
+  return (lvl and lvl.charge or 1) * (b and b.charge or 1)
 end
 
 -- Advance the market one cycle. Call exactly once per cycle increment,

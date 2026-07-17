@@ -113,7 +113,7 @@ M.features = {
 
   -- hub amenities (instances get their containers in world/hubgen.lua)
   { id = "bunk", name = "your bunk", glyph = "8", color = P.TAN + 5,
-    desc = "A company bunk, rented weekly. The lockbox under it is yours. [Space] sleep, [g] stash." },
+    desc = "A company bunk, rented weekly. The locker's beside it; sleep is all this does. [Space] sleep." },
 
   -- counters/desks are furniture now (SI-0005): the PEOPLE stand beside
   -- them, so the station glyphs stopped pretending to be people
@@ -125,6 +125,18 @@ M.features = {
 
   { id = "skiff_dock", name = "skiff dock", glyph = ">", color = P.MAGENTA + 5,
     desc = "Your leased skiff, moored to the jetty. Its hold carries what you can't. [g] hold." },
+
+  -- destination lodging (SI-0006a): a rentable bunk. Renting opens a
+  -- per-cycle reservation (fee on the island spec) covering the room
+  -- AND the locker beside it; resting heals but never saves.
+  { id = "lodging", name = "rented bunk", glyph = "8", color = P.BLUE + 5,
+    desc = "A bunk held in your name for a per-cycle fee. Travel light; the hold is your luggage. [Space] rest." },
+
+  -- storage lockers: stationary stash. The Tether's is yours free;
+  -- destination lockers come with the room (rent required). The SKIFF
+  -- HOLD is the storage that travels with you.
+  { id = "locker", name = "storage locker", glyph = "=", color = P.TAN + 5,
+    desc = "A bolted-down locker. What goes in stays put - it's the skiff hold that travels. [g] open." },
 }
 
 -- Loot tables: each entry {item=id, min=, max=, chance=}

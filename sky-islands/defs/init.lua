@@ -151,7 +151,7 @@ function M.load()
   M.island_by_id = index_by_id(M.island_list)
   for _, isl in ipairs(M.island_list) do
     local w = #isl.map[1]
-    local beacons = 0
+    local beacons, starts = 0, 0
     for ry, row in ipairs(isl.map) do
       assert(#row == w, isl.id .. ": row " .. ry .. " width " .. #row ..
         " ~= " .. w)
@@ -160,10 +160,26 @@ function M.load()
         assert(cell, isl.id .. (": char %q at row %d col %d not in legend")
           :format(row:sub(rx, rx), ry, rx))
         if cell.f == "extract_beacon" then beacons = beacons + 1 end
+        if cell.start then starts = starts + 1 end
       end
     end
-    assert(beacons == 1, isl.id .. ": needs exactly one extract_beacon, has "
-      .. beacons)
+    if isl.destination then
+      assert(beacons == 0 and starts == 1, isl.id ..
+        ": destination needs one start cell and no beacon")
+      for _, eff in ipairs(isl.store_bias or {}) do
+        assert(eff.match and (eff.match.id or eff.match.has),
+          isl.id .. ": store_bias needs match.id or match.has")
+        if eff.match.id then
+          assert(M.item_by_id[eff.match.id],
+            isl.id .. ": store_bias unknown item " .. eff.match.id)
+        end
+        assert(M.economy.demand_levels[eff.demand],
+          isl.id .. ": store_bias unknown demand " .. tostring(eff.demand))
+      end
+    else
+      assert(beacons == 1, isl.id ..
+        ": needs exactly one extract_beacon, has " .. beacons)
+    end
     for ch, cell in pairs(isl.legend) do
       assert(M.tid[cell.t], isl.id .. ": legend " .. ch ..
         ": unknown terrain " .. tostring(cell.t))
@@ -187,6 +203,11 @@ function M.load()
           ": unknown stock item " .. tostring(s.id))
       end
     end
+  end
+  for _, d in ipairs(M.economy.travel.destinations) do
+    local spec = M.island_by_id[d.id]
+    assert(spec and spec.destination,
+      "economy.travel: " .. d.id .. " is not a destination island spec")
   end
   return M
 end

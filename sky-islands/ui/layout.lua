@@ -19,4 +19,19 @@ function L.text(cx, cy, s, color)
   gfx.text(s, L.px(cx) + 1, L.py(cy) + 2, color)
 end
 
+-- word-wrap to a cell width; returns a list of lines (pure, no gfx)
+function L.wrap(text, width)
+  local lines, line = {}, ""
+  for word in text:gmatch("%S+") do
+    if #line + #word + 1 > width and #line > 0 then
+      lines[#lines + 1] = line
+      line = word
+    else
+      line = #line > 0 and (line .. " " .. word) or word
+    end
+  end
+  if #line > 0 then lines[#lines + 1] = line end
+  return lines
+end
+
 return L

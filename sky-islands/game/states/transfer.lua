@@ -123,7 +123,7 @@ function S.key(self, k)
     transfer(self, false)
   elseif k == "g" then
     transfer(self, true)
-  elseif k == "d" and self.cont.prices then
+  elseif k == "d" and self.cont.debt_desk then
     -- voluntary debt payment at the store
     local eco = State.defs.economy
     if State.persist.debt == 0 then
@@ -241,10 +241,15 @@ function S.draw(self)
 
   local hint_y = TOP_Y + math.max(math.min(#player_rows, MAX_ROWS),
     math.min(#cont_rows, MAX_ROWS)) + 3
+  -- backdrop for the hint/market lines: without it the map's glyphs
+  -- show through between the letters
+  gfx.rect_fill(L.px(LEFT_X) - 4, L.py(hint_y) - 2,
+    (RIGHT_X + PANE_W - LEFT_X) * L.CELL_W + 8, 2 * L.CELL_H + 4,
+    P.GRAY + 2)
   if self.cont.take_only then
     L.text(LEFT_X, hint_y, "[Space] take stack  [g] take one  [Bksp] close", P.UI_DIM)
   elseif prices then
-    if State.persist.debt > 0 then
+    if State.persist.debt > 0 and self.cont.debt_desk then
       L.text(LEFT_X, hint_y, string.format(
         "cash %dc  debt %dc   [Space] buy/sell  [g] one  [d] pay %dc debt  [Bksp] close",
         State.persist.credits, State.persist.debt,

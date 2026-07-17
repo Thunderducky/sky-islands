@@ -13,7 +13,7 @@ local MAP = {
   "         ,,T,,,,,,,,,,,,T,,,          ",
   "       ,,,#########,#########,,       ",
   "       ,*,#-------#,#-------#,T,      ",
-  "      ,,,,#--8----#,#--1R---#,,,,     ",
+  "      ,,,,#--8n---#,#--1R---#,,,,     ",
   "      ,,T,#-------+,+-------#,*,,     ",
   "       ,,,#########,#########,,,      ",
   "       ,,,,,..................,,      ",
@@ -24,7 +24,7 @@ local MAP = {
   "     ,,,#-------#,....,,,....,,       ",
   "      ,,#########,...........,        ",
   "      ,,,v,...................        ",
-  "       ,,,,......-----D               ",
+  "       ,,,,......3----D               ",
   "        ,,T......--bb-                ",
   "         ,,,,....*,,,                 ",
   "           ,,,,,,,,,                  ",
@@ -43,6 +43,7 @@ local LEGEND = {
   ["-"] = { t = "floor_planks" },
   ["+"] = { t = "door_closed" },
   ["8"] = { t = "floor_planks", f = "bunk" },
+  ["n"] = { t = "floor_planks", f = "locker" },
   ["R"] = { t = "floor_planks", f = "trader" },
   ["M"] = { t = "floor_planks", f = "coordinator" },
   ["D"] = { t = "floor_planks", f = "skiff_dock" },
@@ -52,13 +53,15 @@ local LEGEND = {
   ["1"] = { t = "floor_planks" },
   ["2"] = { t = "floor_planks" },
   ["b"] = { t = "floor_planks" },
+  ["3"] = { t = "floor_planks" },
 }
 
 -- Where people stand (from the map art above). Pure function of the
 -- MAP constant — no island state, so restored saves re-derive it free.
 function M.spots()
   local out = { fixed = {}, berths = {} }
-  local roles = { ["1"] = "store_runner", ["2"] = "quest_broker" }
+  local roles = { ["1"] = "store_runner", ["2"] = "quest_broker",
+    ["3"] = "travel_agent" }
   for ry, row in ipairs(MAP) do
     for rx = 1, #row do
       local ch = row:sub(rx, rx)
@@ -89,7 +92,7 @@ function M.build(defs)
       end
       local f = sub.feature_at(island, x, y)
       if f then
-        if f.def.id == "bunk" then f.stash = {} end
+        if f.def.id == "locker" then f.stash = {} end
         if f.def.id == "trader" then f.stock = {} end
         if f.def.id == "forage_berries" then
           f.loot = { { id = "berries", n = 3 } }

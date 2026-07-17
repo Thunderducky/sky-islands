@@ -646,6 +646,51 @@ characters on mission islands). Titles, not names (SI-0025).
 - Rendering: people draw dim on remembered ground (residents are known
   fixtures), full color when visible.
 
+## Travel, destinations, lodging (BUILT 2026-07-13 — SI-0006a)
+
+The post-manumission trading triangle: Tether / Conglomerate Core /
+Patrol Outpost. Scoped per-island EVENTS are chunk b (SI-0006b).
+
+- **Destinations** are authored islands (defs/islands.lua) with
+  `destination = true`: no beacon, an `S` start cell, fog arrives
+  remembered (civilized ground), safe (no creatures). Persistent in
+  State.world.islands — stashes and store stock survive revisits;
+  spec statics (npcs, store_bias, lodging_fee, sells_passage)
+  re-attach via `authored.rehydrate` after save.restore.
+- **Price personalities**: spec `store_bias` = list of { match, demand }
+  (same matching as event effects, demand_levels numbers). Stacks
+  MULTIPLICATIVELY with active market events (sim/market.lua
+  bias_level). Core pays high for frontier goods / sells manufactured
+  cheap; outpost pays high for repair goods + food + medical.
+- **Travel**: the travel agent NPC (`travel = true`) grows (fly: ...)
+  menu entries from economy.travel. Gated: destinations refuse debtors;
+  fares checked. run.travel(dest) pays the fee, ADVANCES THE CLOCK BY
+  DISTANCE (advance_cycles: market ticks + hub repopulation + lodging
+  rent, one path for all time), builds-or-reuses the island, and
+  switches to play. Autosave happens ONLY on Tether arrivals.
+- **Bases**: State.base = where you signed on. start_mission records
+  it; return_to_hub flies back there (mission distance in cycles;
+  veteran charters are 2cy out). rescue() always drags you to the
+  Tether. Contract boards derive per-location:
+  (master, "missions:<where>:<cycle>").
+- **Storage model**: bunks SLEEP, the Tether's `locker` STORES, the
+  skiff hold TRAVELS. Stationary storage exists ONLY at home (no
+  leaving-stuff-in-hotels); destinations have skiff docks — the hold
+  arrives when you do (the travel agent's "Baggage" topic says so
+  in-fiction).
+- **Lodging**: destination `lodging` feature = rentable bunk. Renting
+  opens a per-cycle reservation (State.lodging[key], fee from the spec,
+  serialized as a key list); rent is charged every cycle by
+  advance_cycles in SORTED key order and the reservation lapses if
+  unpayable. Resting heals/hungers via the sleepwipe but NEVER saves
+  (run.sleep writes only at the hub).
+- **Hub migration**: save.restore rebuilds the Tether fresh from
+  hubgen and transplants mutable state (trader stock, stash -> locker),
+  so hub map evolution never strands old saves.
+- **The placeholder ending**: the Core (`sells_passage`) agent sells
+  passage out (economy.travel.retire_cost) → states/retired.lua. The
+  REAL escape ending stays SI-0008.
+
 ## Web export & deployment (v1)
 
 - `usagi export --target web` (run in this directory) → `sky-islands-web.zip`

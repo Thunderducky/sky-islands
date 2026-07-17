@@ -66,7 +66,7 @@ function S.draw(self)
 
   if r.debt_before > 0 and r.debt_after == 0 then
     gfx.text_ex("INDENTURE CLEARED", 208, L.py(y + 1), 2, 0, P.GREEN + 6, 1.0)
-    L.text(20, y + 2, "The paperwork is waiting back at The Tether.", P.MAGENTA + 5)
+    L.text(20, y + 3, "The paperwork is waiting back at The Tether.", P.MAGENTA + 5)
   end
 
   L.text(20, 26, "[R] fly home to The Tether", P.UI_TEXT)

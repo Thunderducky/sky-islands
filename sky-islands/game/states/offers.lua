@@ -50,7 +50,10 @@ function S.draw(self)
     L.text(x + 10, cy, d[1]:upper(), d[2])
     local blurb, bcolor = "uncharted isle", P.UI_DIM
     if offer.authored then blurb, bcolor = "[debug] authored", P.MAGENTA + 5
-    elseif offer.veteran then blurb, bcolor = "veteran charter", P.GREEN + 5 end
+    elseif offer.veteran then
+      blurb = string.format("veteran, %dcy out", offer.distance or 1)
+      bcolor = P.GREEN + 5
+    end
     L.text(x + 20, cy, blurb, bcolor)
     L.text(x + 38, cy, string.format("%4dc", offer.fee), P.GOLD + 5)
   end

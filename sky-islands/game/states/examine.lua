@@ -37,6 +37,12 @@ local function describe(self)
   if c and creatures.visible_to_player(State, c) then
     return c.def.desc or c.def.name, c.def.color
   end
+  local person = require("sim.npcs").at(island, self.x, self.y)
+  if person then
+    local art = require("defs.art")
+    return person.def.desc or person.def.title, person.def.color,
+      art[person.def.portrait or "Placeholder"]
+  end
   local terr = defs.terrain[sub.get(island, "terrain", self.x, self.y)]
   if terr.is_sky then -- sky is exempt from fog; it's always just sky
     return terr.desc, terr.color
@@ -65,9 +71,23 @@ function S.draw(self)
   if sx >= 0 and sy >= 0 and sx < m.w and sy < m.h then
     gfx.rect(L.px(m.x + sx), L.py(m.y + sy), L.CELL_W, L.CELL_H, P.WHITE)
   end
-  local text, color = describe(self)
-  gfx.rect_fill(L.px(0), L.py(L.LOG.y), L.COLS * L.CELL_W, L.CELL_H, P.GRAY + 2)
-  L.text(0, L.LOG.y, "LOOK: " .. text, color)
+  local text, color, portrait = describe(self)
+  if portrait then
+    -- a face in the corner: portrait panel at the map's top-right
+    local fx = L.px(L.MAP.x + L.MAP.w) - portrait.w - 12
+    local fy = L.py(1)
+    gfx.rect_fill(fx - 4, fy - 4, portrait.w + 8, portrait.h + 8, P.GRAY + 2)
+    gfx.sspr(portrait.x, portrait.y, portrait.w, portrait.h, fx, fy)
+    gfx.rect(fx - 4, fy - 4, portrait.w + 8, portrait.h + 8, P.GRAY + 5)
+  end
+  -- wrapped into the log region (up to its full height), bg per line
+  local lines = L.wrap("LOOK: " .. text, L.COLS - 1)
+  local n = math.min(#lines, L.LOG.h)
+  gfx.rect_fill(L.px(0), L.py(L.LOG.y), L.COLS * L.CELL_W,
+    n * L.CELL_H, P.GRAY + 2)
+  for i = 1, n do
+    L.text(0, L.LOG.y + i - 1, lines[i], color)
+  end
 end
 
 return S
