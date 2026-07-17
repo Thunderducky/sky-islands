@@ -29,7 +29,12 @@ settled/leaning/proposed) → `SPEC.md` (technical contracts) → this file
   "..."`) from that changelog section. Bugfix = patch bump. If the fix
   touches anything under `sky-islands/` outside `tests/`, re-export the
   web build (previous bullet) BEFORE tagging — the tag should match
-  what's actually live.
+  what's actually live. AFTER pushing, VERIFY Pages actually rebuilt:
+  `gh api repos/Thunderducky/sky-islands/pages/builds/latest` must show
+  the new commit; if stale, kick it with
+  `gh api -X POST repos/Thunderducky/sky-islands/pages/builds` and
+  confirm the live bundle hash matches the export (Pages has silently
+  skipped builds before — 2026-07-14).
 
 ## Debug flags
 
